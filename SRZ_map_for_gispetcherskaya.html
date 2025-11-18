@@ -3,203 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Диспетчерская - Таблица данных</title>
+    <title>Диспетчерская - План завода</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
             background-color: #f5f5f5;
+            overflow: auto;
         }
         
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-        }
-        
-        table {
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+            height: 100vh;
+            position: relative;
+            overflow: auto;
+            background-color: #e0e0e0;
         }
         
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        
-        th {
-            background-color: #4CAF50;
-            color: white;
-            font-weight: bold;
-            position: sticky;
-            top: 0;
-        }
-        
-        tr:hover {
-            background-color: #f5f5f5;
-        }
-        
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        
-        .no-data {
-            text-align: center;
+        .map-container {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
             padding: 20px;
-            color: #666;
-            font-style: italic;
         }
         
-        .status-indicator {
+        .map-stage {
+            position: relative;
             display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 8px;
         }
         
-        .status-active {
-            background-color: #4CAF50;
+        .map-image {
+            max-width: 100%;
+            height: auto;
+            display: block;
         }
         
-        .status-completed {
-            background-color: #ff9800;
+        #interactive-areas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
         
-        .status-pending {
-            background-color: #f44336;
+        .interactive-area {
+            position: absolute;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.3s ease;
+            z-index: 10;
+        }
+        
+        .interactive-area:hover {
+            border-color: #4CAF50;
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+        
+        .popup {
+            position: fixed;
+            background-color: white;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            padding: 15px;
+            min-width: 300px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            font-size: 14px;
+        }
+        
+        .popup.visible {
+            display: block;
+        }
+        
+        .popup-header {
+            font-weight: bold;
+            font-size: 16px;
+            color: #4CAF50;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #4CAF50;
+        }
+        
+        .popup-content {
+            margin-top: 10px;
+        }
+        
+        .popup-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .popup-item:last-child {
+            border-bottom: none;
+        }
+        
+        .popup-item-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .popup-item-detail {
+            color: #666;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .popup-no-data {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 10px;
+        }
+        
+        .popup-close {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 20px;
+            color: #999;
+            line-height: 1;
+        }
+        
+        .popup-close:hover {
+            color: #333;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Диспетчерская - График подходов судов</h1>
-        
-        <div id="table-container">
-            <table id="data-table">
-                <thead>
-                    <tr>
-                        <th>Причал</th>
-                        <th>Судно</th>
-                        <th>Вид подхода</th>
-                        <th>Дата швартовки</th>
-                        <th>Дата выбытия</th>
-                        <th>Статус</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body">
-                    <!-- Данные будут вставлены здесь -->
-                </tbody>
-            </table>
-            <div id="no-data-message" class="no-data" style="display: none;">
-                Нет данных для отображения
+        <div class="map-container">
+            <div class="map-stage">
+                <img id="map-image" class="map-image" src="" alt="План завода" />
+                <div id="interactive-areas"></div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Пример данных - в реальном сценарии эти данные могут приходить из внешнего источника
-        const data = [
-            {
-                причал: "Причал №1",
-                судно: "Александр Невский",
-                вид_подхода: "Погрузка",
-                дата_швартовки: "2024-01-15 08:00",
-                дата_выбытия: "2024-01-15 18:00"
-            },
-            {
-                причал: "Причал №2", 
-                судно: "Варяг",
-                вид_подхода: "Выгрузка",
-                дата_швартовки: "2024-01-15 09:30",
-                дата_выбытия: "2024-01-15 16:45"
-            },
-            {
-                причал: "Причал №3",
-                судно: "Петр Великий",
-                вид_подхода: "Техническое обслуживание",
-                дата_швартовки: "2024-01-14 10:00",
-                дата_выбытия: "2024-01-16 15:00"
-            },
-            {
-                причал: "Причал №1",
-                судно: "Севастополь",
-                вид_подхода: "Погрузка",
-                дата_швартовки: "2024-01-16 07:00",
-                дата_выбытия: "2024-01-16 19:30"
-            }
-        ];
+    <div id="popup" class="popup">
+        <span class="popup-close" onclick="closePopup()">&times;</span>
+        <div class="popup-header" id="popup-header"></div>
+        <div class="popup-content" id="popup-content"></div>
+    </div>
 
-        // Функция для отрисовки таблицы
-        function renderTable(dataArray) {
-            const tableBody = document.getElementById('table-body');
-            const noDataMessage = document.getElementById('no-data-message');
-            
-            // Очищаем таблицу
-            tableBody.innerHTML = '';
-            
-            // Проверяем, есть ли данные
-            if (!dataArray || dataArray.length === 0) {
-                noDataMessage.style.display = 'block';
-                return;
+    <script>
+        // Определение данных
+        const externalData = "my_data";
+        
+        // Пути к данным и изображению карты
+        const interactiveAreasPath = "interactiveAreas.txt";
+        const mapImagePath = "yard_map.jpg";
+    </script>
+
+    <script>
+        let parsedData = null;
+        let interactiveAreas = [];
+        let mapImage = null;
+        let interactiveAreasContainer = null;
+        let mapReady = false;
+        let areasReady = false;
+        
+        // Функция для парсинга строки данных в массив объектов
+        function parseDataString(dataString) {
+            if (!dataString || typeof dataString !== 'string') {
+                return null;
             }
             
-            noDataMessage.style.display = 'none';
-            
-            // Заполняем таблицу данными
-            dataArray.forEach(item => {
-                const row = document.createElement('tr');
+            try {
+                const trimmedString = dataString.trim();
                 
-                // Определяем статус на основе дат
-                const currentDate = new Date();
-                const mooringDate = new Date(item.дата_швартовки);
-                const departureDate = new Date(item.дата_выбытия);
-                
-                let status, statusClass, statusText;
-                
-                if (currentDate < mooringDate) {
-                    status = 'pending';
-                    statusClass = 'status-pending';
-                    statusText = 'Ожидается';
-                } else if (currentDate >= mooringDate && currentDate <= departureDate) {
-                    status = 'active';
-                    statusClass = 'status-active';
-                    statusText = 'Активно';
-                } else {
-                    status = 'completed';
-                    statusClass = 'status-completed';
-                    statusText = 'Завершено';
+                if (!trimmedString || trimmedString === "my_data") {
+                    return null;
                 }
                 
-                row.innerHTML = `
-                    <td>${item.причал || ''}</td>
-                    <td>${item.судно || ''}</td>
-                    <td>${item.вид_подхода || ''}</td>
-                    <td>${formatDateTime(item.дата_швартовки) || ''}</td>
-                    <td>${formatDateTime(item.дата_выбытия) || ''}</td>
-                    <td><span class="status-indicator ${statusClass}"></span>${statusText}</td>
-                `;
+                const arrayString = '[' + trimmedString + ']';
                 
-                tableBody.appendChild(row);
-            });
+                let jsonString = arrayString.replace(/([{,]\s*)([а-яА-ЯёЁ\w_]+)(\s*):/g, '$1"$2":');
+                
+                jsonString = jsonString.replace(/:\s*([^,}]+)([,}])/g, function(match, value, separator) {
+                    const trimmedValue = value.trim();
+                    if ((trimmedValue.startsWith('"') && trimmedValue.endsWith('"')) ||
+                        (trimmedValue.startsWith("'") && trimmedValue.endsWith("'"))) {
+                        return match;
+                    }
+                    const escapedValue = trimmedValue.replace(/"/g, '\\"');
+                    return ': "' + escapedValue + '"' + separator;
+                });
+                
+                const parsed = JSON.parse(jsonString);
+                return parsed;
+            } catch (error) {
+                console.error('Ошибка парсинга данных:', error);
+                return null;
+            }
+        }
+
+        // Функция для преобразования даты из формата "dd.mm.yyyy hh:mm:ss" в Date
+        function parseDateTime(dateTimeString) {
+            if (!dateTimeString) return null;
+            
+            if (dateTimeString.includes('-') || dateTimeString.includes('T')) {
+                return new Date(dateTimeString);
+            }
+            
+            const match = dateTimeString.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+            if (match) {
+                const [, day, month, year, hour, minute, second] = match;
+                return new Date(year, month - 1, day, hour, minute, second);
+            }
+            
+            return new Date(dateTimeString);
         }
 
         // Функция для форматирования даты и времени
         function formatDateTime(dateTimeString) {
             if (!dateTimeString) return '';
             
-            const date = new Date(dateTimeString);
+            const date = parseDateTime(dateTimeString);
+            if (!date || isNaN(date.getTime())) return dateTimeString;
+            
             return date.toLocaleString('ru-RU', {
                 day: '2-digit',
                 month: '2-digit',
@@ -209,31 +243,266 @@
             });
         }
 
-        // Функция для обновления данных из внешнего источника
-        function updateData(newData) {
-            // Если переданы новые данные, используем их
-            if (newData && Array.isArray(newData)) {
-                renderTable(newData);
+        // Функция для парсинга данных интерактивных областей
+        function parseInteractiveAreasString(rawString) {
+            if (!rawString || typeof rawString !== 'string') {
+                return [];
+            }
+            
+            try {
+                const withoutComments = rawString.replace(/\/\/.*$/gm, '');
+                const trimmed = withoutComments.trim();
+                
+                if (!trimmed) {
+                    return [];
+                }
+                
+                const normalized = trimmed.startsWith('[') ? trimmed : '[' + trimmed + ']';
+                const quotedKeys = normalized.replace(/([{,]\s*)([а-яА-ЯёЁ\w_]+)(\s*):/g, '$1"$2"$3:');
+                const escapedBackslashes = quotedKeys.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+                
+                const parsed = JSON.parse(escapedBackslashes);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                console.error('Ошибка преобразования интерактивных областей:', error);
+                
+                try {
+                    const fallbackParser = new Function('return ' + rawString);
+                    const fallbackResult = fallbackParser();
+                    return Array.isArray(fallbackResult) ? fallbackResult : [];
+                } catch (innerError) {
+                    console.error('Ошибка резервного парсинга областей:', innerError);
+                    return [];
+                }
+            }
+        }
+
+        // Функция для фильтрации данных по объекту
+        function filterDataByObject(dataArray, matchField, matchValue) {
+            if (!dataArray || !Array.isArray(dataArray)) {
+                return [];
+            }
+            
+            return dataArray.filter(item => {
+                const fieldValue = item[matchField];
+                if (!fieldValue) return false;
+                
+                // Проверяем точное совпадение или вхождение подстроки
+                const fieldStr = String(fieldValue).toLowerCase();
+                const matchStr = String(matchValue).toLowerCase();
+                
+                return fieldStr === matchStr || fieldStr.includes(matchStr) || matchStr.includes(fieldStr);
+            });
+        }
+
+        // Функция для создания интерактивной области
+        function createInteractiveArea(areaConfig, scaleX, scaleY) {
+            const area = document.createElement('div');
+            area.className = 'interactive-area';
+            area.style.left = (areaConfig.x * scaleX) + 'px';
+            area.style.top = (areaConfig.y * scaleY) + 'px';
+            area.style.width = (areaConfig.width * scaleX) + 'px';
+            area.style.height = (areaConfig.height * scaleY) + 'px';
+            area.title = areaConfig.name;
+            
+            area.addEventListener('mouseenter', function(e) {
+                showPopup(e, areaConfig);
+            });
+            
+            area.addEventListener('mousemove', function(e) {
+                updatePopupPosition(e);
+            });
+            
+            area.addEventListener('mouseleave', function() {
+                closePopup();
+            });
+            
+            return area;
+        }
+
+        // Функция для отображения всплывающего окна
+        function showPopup(event, areaConfig) {
+            const popup = document.getElementById('popup');
+            const popupHeader = document.getElementById('popup-header');
+            const popupContent = document.getElementById('popup-content');
+            
+            if (!parsedData || !Array.isArray(parsedData)) {
+                popupHeader.textContent = areaConfig.name;
+                popupContent.innerHTML = '<div class="popup-no-data">Нет данных для отображения</div>';
             } else {
-                // Иначе используем пример данных
-                renderTable(data);
+                const filteredData = filterDataByObject(
+                    parsedData, 
+                    areaConfig.matchField || 'причал', 
+                    areaConfig.matchValue || areaConfig.name
+                );
+                
+                popupHeader.textContent = areaConfig.name;
+                
+                if (filteredData.length === 0) {
+                    popupContent.innerHTML = '<div class="popup-no-data">Нет данных для этого объекта</div>';
+                } else {
+                    let contentHTML = '';
+                    filteredData.forEach((item, index) => {
+                        contentHTML += `
+                            <div class="popup-item">
+                                <div class="popup-item-title">Запись ${index + 1}</div>
+                                ${item.судно ? `<div class="popup-item-detail"><strong>Судно:</strong> ${item.судно}</div>` : ''}
+                                ${item.причал ? `<div class="popup-item-detail"><strong>Причал:</strong> ${item.причал}</div>` : ''}
+                                ${item.вид_подхода ? `<div class="popup-item-detail"><strong>Вид подхода:</strong> ${item.вид_подхода}</div>` : ''}
+                                ${item.дата_швартовки ? `<div class="popup-item-detail"><strong>Дата швартовки:</strong> ${formatDateTime(item.дата_швартовки)}</div>` : ''}
+                                ${item.дата_выбытия ? `<div class="popup-item-detail"><strong>Дата выбытия:</strong> ${formatDateTime(item.дата_выбытия)}</div>` : ''}
+                            </div>
+                        `;
+                    });
+                    popupContent.innerHTML = contentHTML;
+                }
+            }
+            
+            popup.classList.add('visible');
+            updatePopupPosition(event);
+        }
+
+        // Функция для обновления позиции всплывающего окна
+        function updatePopupPosition(event) {
+            const popup = document.getElementById('popup');
+            const popupRect = popup.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            let left = event.clientX + 15;
+            let top = event.clientY + 15;
+            
+            // Корректировка позиции, чтобы попап не выходил за границы экрана
+            if (left + popupRect.width > viewportWidth) {
+                left = event.clientX - popupRect.width - 15;
+            }
+            if (top + popupRect.height > viewportHeight) {
+                top = event.clientY - popupRect.height - 15;
+            }
+            
+            popup.style.left = left + 'px';
+            popup.style.top = top + 'px';
+        }
+
+        // Функция для закрытия всплывающего окна
+        function closePopup() {
+            const popup = document.getElementById('popup');
+            popup.classList.remove('visible');
+        }
+
+        // Функция для рендеринга интерактивных областей с учетом масштаба
+        function renderInteractiveAreas() {
+            if (!mapReady || !areasReady || !mapImage || !interactiveAreasContainer) {
+                return;
+            }
+            
+            const clientWidth = mapImage.clientWidth;
+            const clientHeight = mapImage.clientHeight;
+            const naturalWidth = mapImage.naturalWidth;
+            const naturalHeight = mapImage.naturalHeight;
+            
+            if (!clientWidth || !clientHeight || !naturalWidth || !naturalHeight) {
+                return;
+            }
+            
+            const scaleX = clientWidth / naturalWidth;
+            const scaleY = clientHeight / naturalHeight;
+            
+            interactiveAreasContainer.innerHTML = '';
+            
+            if (!interactiveAreas || interactiveAreas.length === 0) {
+                console.warn('Интерактивные области отсутствуют или не загружены.');
+                return;
+            }
+            
+            interactiveAreas.forEach(areaConfig => {
+                const area = createInteractiveArea(areaConfig, scaleX, scaleY);
+                interactiveAreasContainer.appendChild(area);
+            });
+        }
+        
+        function loadMapImage() {
+            if (!mapImage) {
+                return;
+            }
+            
+            if (mapImagePath) {
+                mapImage.src = mapImagePath;
+            }
+            
+            if (mapImage.complete && mapImage.naturalWidth) {
+                mapReady = true;
+                renderInteractiveAreas();
+                return;
+            }
+            
+            mapImage.addEventListener('load', function() {
+                mapReady = true;
+                renderInteractiveAreas();
+            });
+            
+            mapImage.addEventListener('error', function() {
+                console.error('Не удалось загрузить изображение карты по пути:', mapImagePath);
+            });
+        }
+        
+        async function loadInteractiveAreas() {
+            if (!interactiveAreasPath) {
+                console.warn('Не указан путь к файлу интерактивных областей.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(interactiveAreasPath);
+                
+                if (!response.ok) {
+                    throw new Error('Код ответа: ' + response.status);
+                }
+                
+                const text = await response.text();
+                const parsedAreas = parseInteractiveAreasString(text);
+                
+                if (Array.isArray(parsedAreas) && parsedAreas.length > 0) {
+                    interactiveAreas = parsedAreas;
+                    areasReady = true;
+                    renderInteractiveAreas();
+                } else {
+                    console.warn('Файл интерактивных областей загружен, но данных нет.');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки интерактивных областей:', error);
             }
         }
 
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
-            // Проверяем, была ли передана переменная data извне
-            if (typeof externalData !== 'undefined') {
-                updateData(externalData);
-            } else {
-                updateData(data);
+            mapImage = document.getElementById('map-image');
+            interactiveAreasContainer = document.getElementById('interactive-areas');
+            
+            loadMapImage();
+            loadInteractiveAreas();
+            
+            // Парсим данные
+            if (externalData) {
+                if (typeof externalData === 'string') {
+                    parsedData = parseDataString(externalData);
+                } else if (Array.isArray(externalData)) {
+                    parsedData = externalData;
+                }
             }
+            
+            // Закрытие попапа при клике вне его
+            document.addEventListener('click', function(e) {
+                const popup = document.getElementById('popup');
+                if (!popup.contains(e.target) && !e.target.classList.contains('interactive-area')) {
+                    closePopup();
+                }
+            });
+            
+            window.addEventListener('resize', function() {
+                renderInteractiveAreas();
+            });
         });
-
-        // Функция для внешнего использования - позволяет обновлять данные
-        window.updateTableData = function(newData) {
-            updateData(newData);
-        };
     </script>
 </body>
 </html>
