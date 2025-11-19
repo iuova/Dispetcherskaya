@@ -60,7 +60,7 @@
     "width": 30.5,
     "height": 30.5,
     "matchField": "док",
-    "matchValue": "П\\Д 20"
+    "matchValue": "П\\Д 2"
   },
   {
     "name": "пирс №2",
@@ -95,7 +95,7 @@
     "y": 278.9,
     "width": 30.5,
     "height": 30.5,
-    "matchField": "док",
-    "matchValue": "П\\Д 20"
+    "matchField": "причал",
+    "matchValue": "причал ВМФ"
   }
 ]
