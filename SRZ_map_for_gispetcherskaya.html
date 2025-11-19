@@ -326,14 +326,61 @@
         });
     }
 
+    function validateAreaBounds(areaConfig, naturalWidth, naturalHeight) {
+        const errors = [];
+
+        if (!areaConfig || typeof areaConfig !== 'object') {
+            errors.push('Конфигурация области не задана или имеет неверный формат');
+            return { isValid: false, errors };
+        }
+
+        const numericValues = {};
+        ['x', 'y', 'width', 'height'].forEach(field => {
+            const value = Number(areaConfig[field]);
+            numericValues[field] = value;
+
+            if (!Number.isFinite(value)) {
+                errors.push(`Поле ${field} должно быть числом`);
+                return;
+            }
+
+            if ((field === 'width' || field === 'height') && value <= 0) {
+                errors.push(`Поле ${field} должно быть больше 0`);
+            }
+
+            if ((field === 'x' || field === 'y') && value < 0) {
+                errors.push(`Поле ${field} не может быть отрицательным`);
+            }
+        });
+
+        if (Number.isFinite(numericValues.x) && Number.isFinite(numericValues.width)) {
+            if (numericValues.x + numericValues.width > naturalWidth) {
+                errors.push('Область выходит за правую границу карты');
+            }
+        }
+
+        if (Number.isFinite(numericValues.y) && Number.isFinite(numericValues.height)) {
+            if (numericValues.y + numericValues.height > naturalHeight) {
+                errors.push('Область выходит за нижнюю границу карты');
+            }
+        }
+
+        return { isValid: errors.length === 0, errors };
+    }
+
     // Функция для создания интерактивной области
     function createInteractiveArea(areaConfig, scaleX, scaleY) {
         const area = document.createElement('div');
         area.className = 'interactive-area';
-        area.style.left = (areaConfig.x * scaleX) + 'px';
-        area.style.top = (areaConfig.y * scaleY) + 'px';
-        area.style.width = (areaConfig.width * scaleX) + 'px';
-        area.style.height = (areaConfig.height * scaleY) + 'px';
+        const x = Number(areaConfig.x);
+        const y = Number(areaConfig.y);
+        const width = Number(areaConfig.width);
+        const height = Number(areaConfig.height);
+
+        area.style.left = (x * scaleX) + 'px';
+        area.style.top = (y * scaleY) + 'px';
+        area.style.width = (width * scaleX) + 'px';
+        area.style.height = (height * scaleY) + 'px';
         area.title = areaConfig.name;
         
         area.addEventListener('mouseenter', function(e) {
@@ -447,6 +494,12 @@
         }
         
         interactiveAreas.forEach(areaConfig => {
+            const validation = validateAreaBounds(areaConfig, naturalWidth, naturalHeight);
+            if (!validation.isValid) {
+                console.warn(`Область "${areaConfig.name || 'без названия'}" пропущена: ${validation.errors.join('; ')}`);
+                return;
+            }
+
             const area = createInteractiveArea(areaConfig, scaleX, scaleY);
             interactiveAreasContainer.appendChild(area);
         });
