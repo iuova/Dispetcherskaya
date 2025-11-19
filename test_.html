@@ -151,10 +151,32 @@
 
 <script>
     // Определение данных
-    const externalData = "{причал: Плавдок № 20, судно: DE MI, вид_подхода: Фактический, дата_швартовки: 14.11.2025 8:00:00, дата_выбытия: 19.11.2025 10:56:43},{причал: Плавдок № 20, судно: GLORY STAR, вид_подхода: Фактический, дата_швартовки: 14.11.2025 9:00:00, дата_выбытия: 19.11.2025 10:56:43},{причал: Причал №26, судно: GLORY STAR, вид_подхода: Фактический, дата_швартовки: 18.11.2025 8:00:00, дата_выбытия: 18.11.2025 7:59:59}";
+    const externalData = `[
+        {
+            "причал": "Плавдок № 20",
+            "судно": "DE MI",
+            "вид_подхода": "Фактический",
+            "дата_швартовки": "14.11.2025 8:00:00",
+            "дата_выбытия": "19.11.2025 10:56:43"
+        },
+        {
+            "причал": "Плавдок № 20",
+            "судно": "GLORY STAR",
+            "вид_подхода": "Фактический",
+            "дата_швартовки": "14.11.2025 9:00:00",
+            "дата_выбытия": "19.11.2025 10:56:43"
+        },
+        {
+            "причал": "Причал №26",
+            "судно": "GLORY STAR",
+            "вид_подхода": "Фактический",
+            "дата_швартовки": "18.11.2025 8:00:00",
+            "дата_выбытия": "18.11.2025 7:59:59"
+        }
+    ]`;
     
     // Пути к данным и изображению карты
-    const interactiveAreasPath = "C:/Users/O.Iunina/Desktop/Projects/_Dispetcherskaya/interactiveAreas.txt";
+    const interactiveAreasPath = "C:/Users/O.Iunina/Desktop/Projects/_Dispetcherskaya/interactiveAreas.json";
     const mapImagePath = "C:/Users/O.Iunina/Desktop/Projects/_Dispetcherskaya/yard_map.jpg";
 </script><script>
     let parsedData = null;
@@ -163,6 +185,19 @@
     let interactiveAreasContainer = null;
     let mapReady = false;
     let areasReady = false;
+
+    const interactiveAreaSchema = {
+        required: ['name', 'x', 'y', 'width', 'height', 'matchField'],
+        propertyTypes: {
+            name: 'string',
+            x: 'number',
+            y: 'number',
+            width: 'number',
+            height: 'number',
+            matchField: 'string',
+            matchValue: 'string'
+        }
+    };
     
     // Функция для нормализации путей Windows (конвертация обратных слешей в прямые)
     function normalizePath(path) {
@@ -196,48 +231,25 @@
         if (!dataString || typeof dataString !== 'string') {
             return null;
         }
-        
+
         try {
             const trimmedString = dataString.trim();
-            
+
             if (!trimmedString) {
                 return null;
             }
-            
-            // Оборачиваем в массив, если это не массив
-            const arrayString = trimmedString.startsWith('[') ? trimmedString : '[' + trimmedString + ']';
-            
-            // Заменяем ключи без кавычек на ключи с кавычками
-            let jsonString = arrayString.replace(/([{,]\s*)([а-яА-ЯёЁ\w_]+)(\s*):/g, '$1"$2":');
-            
-            // Обрабатываем значения: находим значения между : и , или }
-            // Улучшенная версия, которая правильно обрабатывает значения с пробелами и специальными символами
-            jsonString = jsonString.replace(/:\s*([^,}]+?)(\s*[,}])/g, function(match, value, separator) {
-                const trimmedValue = value.trim();
-                
-                // Если значение уже в кавычках, оставляем как есть
-                if ((trimmedValue.startsWith('"') && trimmedValue.endsWith('"')) ||
-                    (trimmedValue.startsWith("'") && trimmedValue.endsWith("'"))) {
-                    return match;
-                }
-                
-                // Экранируем кавычки и обратные слеши в значении
-                const escapedValue = trimmedValue
-                    .replace(/\\/g, '\\\\')
-                    .replace(/"/g, '\\"')
-                    .replace(/\n/g, '\\n')
-                    .replace(/\r/g, '\\r')
-                    .replace(/\t/g, '\\t');
-                
-                return ': "' + escapedValue + '"' + separator;
-            });
-            
-            const parsed = JSON.parse(jsonString);
+
+            const parsed = JSON.parse(trimmedString);
+
+            if (!Array.isArray(parsed)) {
+                throw new Error('Ожидается массив объектов с данными для карты.');
+            }
+
             return parsed;
         } catch (error) {
-            console.error('Ошибка парсинга данных:', error);
-            console.error('Проблемная строка:', dataString);
-            return null;
+            const message = `Не удалось распарсить строку данных: ${error.message}`;
+            console.error(message);
+            throw new Error(message);
         }
     }
 
@@ -274,37 +286,46 @@
         });
     }
 
+    function validateInteractiveAreasData(data) {
+        if (!Array.isArray(data)) {
+            throw new Error('Интерактивные области должны быть массивом объектов.');
+        }
+
+        data.forEach((area, index) => {
+            interactiveAreaSchema.required.forEach(field => {
+                if (area[field] === undefined) {
+                    throw new Error(`Область №${index + 1} не содержит обязательное поле "${field}".`);
+                }
+            });
+
+            Object.entries(interactiveAreaSchema.propertyTypes).forEach(([field, type]) => {
+                if (area[field] !== undefined && typeof area[field] !== type) {
+                    throw new Error(`Поле "${field}" в области №${index + 1} должно быть типа ${type}.`);
+                }
+            });
+        });
+    }
+
     // Функция для парсинга данных интерактивных областей
     function parseInteractiveAreasString(rawString) {
         if (!rawString || typeof rawString !== 'string') {
             return [];
         }
-        
+
         try {
-            const withoutComments = rawString.replace(/\/\/.*$/gm, '');
-            const trimmed = withoutComments.trim();
-            
+            const trimmed = rawString.trim();
+
             if (!trimmed) {
                 return [];
             }
-            
-            const normalized = trimmed.startsWith('[') ? trimmed : '[' + trimmed + ']';
-            const quotedKeys = normalized.replace(/([{,]\s*)([а-яА-ЯёЁ\w_]+)(\s*):/g, '$1"$2"$3:');
-            const escapedBackslashes = quotedKeys.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
-            
-            const parsed = JSON.parse(escapedBackslashes);
-            return Array.isArray(parsed) ? parsed : [];
+
+            const parsed = JSON.parse(trimmed);
+            validateInteractiveAreasData(parsed);
+            return parsed;
         } catch (error) {
-            console.error('Ошибка преобразования интерактивных областей:', error);
-            
-            try {
-                const fallbackParser = new Function('return ' + rawString);
-                const fallbackResult = fallbackParser();
-                return Array.isArray(fallbackResult) ? fallbackResult : [];
-            } catch (innerError) {
-                console.error('Ошибка резервного парсинга областей:', innerError);
-                return [];
-            }
+            const message = `Не удалось распарсить файл интерактивных областей: ${error.message}`;
+            console.error(message);
+            throw new Error(message);
         }
     }
 
@@ -530,7 +551,7 @@
         } catch (error) {
             if (error.message && (error.message.includes('CORS') || error.message.includes('Failed to fetch'))) {
                 console.error('Ошибка CORS при загрузке интерактивных областей. Для работы с локальными файлами необходимо запустить веб-сервер (например, через Python: python -m http.server или через Live Server в VS Code).');
-                console.warn('Альтернатива: используйте относительные пути (например, "interactiveAreas.txt") вместо абсолютных путей Windows.');
+                console.warn('Альтернатива: используйте относительные пути (например, "interactiveAreas.json") вместо абсолютных путей Windows.');
             } else {
                 console.error('Ошибка загрузки интерактивных областей:', error);
             }
@@ -548,7 +569,11 @@
         // Парсим данные
         if (externalData) {
             if (typeof externalData === 'string') {
-                parsedData = parseDataString(externalData);
+                try {
+                    parsedData = parseDataString(externalData);
+                } catch (error) {
+                    console.error(error.message);
+                }
             } else if (Array.isArray(externalData)) {
                 parsedData = externalData;
             }
