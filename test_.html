@@ -276,6 +276,12 @@
                 }
             });
 
+            ['x', 'y', 'width', 'height'].forEach(field => {
+                if (area[field] !== undefined) {
+                    area[field] = Number(String(area[field]).replace(',', '.'));
+                }
+            });
+
             Object.entries(interactiveAreaSchema.propertyTypes).forEach(([field, type]) => {
                 if (area[field] !== undefined && typeof area[field] !== type) {
                     throw new Error(`Поле "${field}" в области №${index + 1} должно быть типа ${type}.`);
@@ -371,10 +377,10 @@
     function createInteractiveArea(areaConfig, scaleX, scaleY) {
         const area = document.createElement('div');
         area.className = 'interactive-area';
-        const x = Number(areaConfig.x);
-        const y = Number(areaConfig.y);
-        const width = Number(areaConfig.width);
-        const height = Number(areaConfig.height);
+        const x = areaConfig.x;
+        const y = areaConfig.y;
+        const width = areaConfig.width;
+        const height = areaConfig.height;
 
         area.style.left = (x * scaleX) + 'px';
         area.style.top = (y * scaleY) + 'px';
