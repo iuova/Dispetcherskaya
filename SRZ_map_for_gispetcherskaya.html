@@ -32,7 +32,7 @@
         position: relative;
         display: inline-block;
     }
-    
+
     .map-image {
         max-width: 100%;
         height: auto;
@@ -45,6 +45,31 @@
         left: 0;
         width: 100%;
         height: 100%;
+    }
+
+    .map-error-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 20px;
+        font-size: 16px;
+        z-index: 20;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .map-error-overlay.visible {
+        visibility: visible;
+        opacity: 1;
     }
     
     .interactive-area {
@@ -138,7 +163,9 @@
 <div class="container">
     <div class="map-container">
         <div class="map-stage">
-            <img id="map-image" class="map-image" src="" alt="План завода"></img><div id="interactive-areas"></div>
+            <img id="map-image" class="map-image" src="" alt="План завода"></img>
+            <div id="interactive-areas"></div>
+            <div id="map-error-overlay" class="map-error-overlay">Изображение карты не удалось загрузить. Проверьте путь к файлу или запустите страницу через локальный веб-сервер.</div>
         </div>
     </div>
 </div>
@@ -161,8 +188,10 @@
     let interactiveAreas = [];
     let mapImage = null;
     let interactiveAreasContainer = null;
+    let mapErrorOverlay = null;
     let mapReady = false;
     let areasReady = false;
+    let mapLoadFallbackTried = false;
 
     const interactiveAreaSchema = {
         required: ['name', 'x', 'y', 'width', 'height', 'matchField'],
@@ -503,7 +532,27 @@
             interactiveAreasContainer.appendChild(area);
         });
     }
-    
+
+    function showMapError(message) {
+        if (!mapErrorOverlay) {
+            return;
+        }
+
+        if (message) {
+            mapErrorOverlay.textContent = message;
+        }
+
+        mapErrorOverlay.classList.add('visible');
+    }
+
+    function hideMapError() {
+        if (!mapErrorOverlay) {
+            return;
+        }
+
+        mapErrorOverlay.classList.remove('visible');
+    }
+
     function loadMapImage() {
         if (!mapImage) {
             return;
@@ -525,23 +574,34 @@
             // Иначе просто нормализуем путь
             imageSrc = normalizePath(mapImagePath);
         }
-        
+
+        hideMapError();
         mapImage.src = imageSrc;
-        
+
         if (mapImage.complete && mapImage.naturalWidth) {
             mapReady = true;
             renderInteractiveAreas();
             return;
         }
-        
+
         mapImage.addEventListener('load', function() {
             mapReady = true;
+            hideMapError();
             renderInteractiveAreas();
         });
-        
+
         mapImage.addEventListener('error', function() {
-            console.error('Не удалось загрузить изображение карты по пути:', mapImagePath);
-            console.warn('Попробуйте использовать относительный путь (например, "yard_map.jpg") или запустите через веб-сервер.');
+            const fallbackRelativePath = 'yard_map.jpg';
+            console.error('Не удалось загрузить изображение карты по пути:', mapImage.src);
+
+            if (!mapLoadFallbackTried && mapImagePath && mapImage.src !== fallbackRelativePath) {
+                mapLoadFallbackTried = true;
+                console.warn('Попытка загрузить изображение по относительному пути по умолчанию:', fallbackRelativePath);
+                mapImage.src = fallbackRelativePath;
+                return;
+            }
+
+            showMapError('Изображение карты недоступно. Проверьте путь к файлу или запустите страницу через локальный веб-сервер.');
         });
     }
     
@@ -593,7 +653,8 @@
     document.addEventListener('DOMContentLoaded', function() {
         mapImage = document.getElementById('map-image');
         interactiveAreasContainer = document.getElementById('interactive-areas');
-        
+        mapErrorOverlay = document.getElementById('map-error-overlay');
+
         loadMapImage();
         loadInteractiveAreas();
         
