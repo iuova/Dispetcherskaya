@@ -176,6 +176,17 @@
             matchValue: 'string'
         }
     };
+
+    const KEY_MAPPINGS = {
+        'причал': 'причал',
+        'судно': 'судно',
+        'вид_подхода': 'вид_подхода',
+        'видподхода': 'вид_подхода',
+        'дата_швартовки': 'дата_швартовки',
+        'даташвартовки': 'дата_швартовки',
+        'дата_выбытия': 'дата_выбытия',
+        'датавыбытия': 'дата_выбытия'
+    };
     
     // Функция для нормализации путей Windows (конвертация обратных слешей в прямые)
     function normalizePath(path) {
@@ -223,12 +234,39 @@
                 throw new Error('Ожидается массив объектов с данными для карты.');
             }
 
-            return parsed;
+            return parsed.map(normalizeObjectKeys);
         } catch (error) {
             const message = `Не удалось распарсить строку данных: ${error.message}`;
             console.error(message);
             throw new Error(message);
         }
+    }
+
+    function normalizeKeyName(key) {
+        if (key === undefined || key === null) {
+            return '';
+        }
+
+        return String(key)
+            .toLowerCase()
+            .replace(/\s+/g, '');
+    }
+
+    function mapKeyName(rawKey) {
+        const normalized = normalizeKeyName(rawKey);
+        return KEY_MAPPINGS[normalized] || normalized;
+    }
+
+    function normalizeObjectKeys(obj) {
+        if (!obj || typeof obj !== 'object') {
+            return obj;
+        }
+
+        return Object.entries(obj).reduce((acc, [key, value]) => {
+            const mappedKey = mapKeyName(key);
+            acc[mappedKey] = value;
+            return acc;
+        }, {});
     }
 
     // Функция для преобразования даты из формата "dd.mm.yyyy hh:mm:ss" в Date
@@ -299,7 +337,11 @@
 
             const parsed = JSON.parse(trimmed);
             validateInteractiveAreasData(parsed);
-            return parsed;
+
+            return parsed.map(area => ({
+                ...area,
+                matchField: mapKeyName(area.matchField)
+            }));
         } catch (error) {
             const message = `Не удалось распарсить файл интерактивных областей: ${error.message}`;
             console.error(message);
@@ -312,15 +354,20 @@
         if (!dataArray || !Array.isArray(dataArray)) {
             return [];
         }
-        
+
+        const normalizedMatchField = mapKeyName(matchField);
+        const normalizedMatchValue = matchValue === undefined || matchValue === null
+            ? ''
+            : String(matchValue).toLowerCase().trim();
+
         return dataArray.filter(item => {
-            const fieldValue = item[matchField];
-            if (!fieldValue) return false;
-            
+            const fieldValue = item ? item[normalizedMatchField] : undefined;
+            if (fieldValue === undefined || fieldValue === null) return false;
+
             // Проверяем точное совпадение или вхождение подстроки
-            const fieldStr = String(fieldValue).toLowerCase();
-            const matchStr = String(matchValue).toLowerCase();
-            
+            const fieldStr = String(fieldValue).toLowerCase().trim();
+            const matchStr = normalizedMatchValue;
+
             return fieldStr === matchStr || fieldStr.includes(matchStr) || matchStr.includes(fieldStr);
         });
     }
