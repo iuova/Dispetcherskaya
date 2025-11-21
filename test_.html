@@ -307,21 +307,36 @@
         }
     }
 
+    // Функция для нормализации строковых значений
+    function normalizeStringValue(value) {
+        if (value === undefined || value === null) return '';
+
+        return String(value)
+            .trim()
+            .replace(/\s+/g, ' ')
+            .toLowerCase();
+    }
+
     // Функция для фильтрации данных по объекту
     function filterDataByObject(dataArray, matchField, matchValue) {
         if (!dataArray || !Array.isArray(dataArray)) {
             return [];
         }
-        
+
+        const normalizedMatchValue = normalizeStringValue(matchValue);
+
         return dataArray.filter(item => {
             const fieldValue = item[matchField];
             if (!fieldValue) return false;
-            
+
             // Проверяем точное совпадение или вхождение подстроки
-            const fieldStr = String(fieldValue).toLowerCase();
-            const matchStr = String(matchValue).toLowerCase();
-            
-            return fieldStr === matchStr || fieldStr.includes(matchStr) || matchStr.includes(fieldStr);
+            const normalizedFieldValue = normalizeStringValue(fieldValue);
+
+            return (
+                normalizedFieldValue === normalizedMatchValue ||
+                normalizedFieldValue.includes(normalizedMatchValue) ||
+                normalizedMatchValue.includes(normalizedFieldValue)
+            );
         });
     }
 
@@ -407,10 +422,14 @@
             popupHeader.textContent = areaConfig.name;
             popupContent.innerHTML = '<div class="popup-no-data">Нет данных для отображения</div>';
         } else {
-            const filteredData = filterDataByObject(
-                parsedData, 
-                areaConfig.matchField || 'причал', 
+            const normalizedMatchValue = normalizeStringValue(
                 areaConfig.matchValue || areaConfig.name
+            );
+
+            const filteredData = filterDataByObject(
+                parsedData,
+                areaConfig.matchField || 'причал',
+                normalizedMatchValue
             );
             
             popupHeader.textContent = areaConfig.name;
