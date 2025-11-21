@@ -76,7 +76,8 @@ function buildJsonFromObjectStrings(rawString) {
 
     const jsonReadyObjects = objectStrings.map(chunk => {
         const escapedBackslashes = chunk.replace(/\\/g, '\\\\');
-        const quotedKeys = escapedBackslashes.replace(/([{,]\s*)([^,{:]+?)(\s*:\s*)/g, (match, prefix, key, separator) => {
+        const decimalSafeChunk = escapedBackslashes.replace(/(\d),(?=\d)/g, '$1.');
+        const quotedKeys = decimalSafeChunk.replace(/([{,]\s*)([^,{:]+?)(\s*:\s*)/g, (match, prefix, key, separator) => {
             const safeKey = key.trim().replace(/"/g, '\\"');
             return `${prefix}"${safeKey}"${separator}`;
         });
