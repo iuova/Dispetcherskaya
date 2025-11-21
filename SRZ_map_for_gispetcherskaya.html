@@ -1,625 +1,632 @@
 <!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"></meta><meta name="viewport" content="width=device-width, initial-scale=1.0"></meta><title>Диспетчерская - План завода</title><style>
     * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-    
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #f5f5f5;
-        overflow: auto;
-    }
-    
-    .container {
-        width: 100%;
-        height: 100vh;
-        position: relative;
-        overflow: auto;
-        background-color: #e0e0e0;
-    }
-    
-    .map-container {
-        width: 100%;
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        padding: 20px;
-    }
-    
-    .map-stage {
-        position: relative;
-        display: inline-block;
-    }
-    
-    .map-image {
-        max-width: 100%;
-        height: auto;
-        display: block;
-    }
-    
-    #interactive-areas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-    }
-    
-    .interactive-area {
-        position: absolute;
-        cursor: pointer;
-        border: 2px solid transparent;
-        transition: border-color 0.3s ease;
-        z-index: 10;
-    }
-    
-    .interactive-area:hover {
-        border-color: #4CAF50;
-        background-color: rgba(76, 175, 80, 0.1);
-    }
-    
-    .popup {
-        position: fixed;
-        background-color: white;
-        border: 2px solid #4CAF50;
-        border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        padding: 15px;
-        min-width: 300px;
-        max-width: 500px;
-        max-height: 80vh;
-        overflow-y: auto;
-        z-index: 1000;
-        display: none;
-        font-size: 14px;
-    }
-    
-    .popup.visible {
-        display: block;
-    }
-    
-    .popup-header {
-        font-weight: bold;
-        font-size: 16px;
-        color: #4CAF50;
-        margin-bottom: 10px;
-        padding-bottom: 8px;
-        border-bottom: 2px solid #4CAF50;
-    }
-    
-    .popup-content {
-        margin-top: 10px;
-    }
-    
-    .popup-item {
-        padding: 8px 0;
-        border-bottom: 1px solid #eee;
-    }
-    
-    .popup-item:last-child {
-        border-bottom: none;
-    }
-    
-    .popup-item-title {
-        font-weight: bold;
-        color: #333;
-        margin-bottom: 4px;
-    }
-    
-    .popup-item-detail {
-        color: #666;
-        font-size: 12px;
-        margin-left: 10px;
-    }
-    
-    .popup-no-data {
-        color: #999;
-        font-style: italic;
-        text-align: center;
-        padding: 10px;
-    }
-    
-    .popup-close {
-        position: absolute;
-        top: 5px;
-        right: 10px;
-        cursor: pointer;
-        font-size: 20px;
-        color: #999;
-        line-height: 1;
-    }
-    
-    .popup-close:hover {
-        color: #333;
-    }
-</style></head><body>
-<div class="container">
-    <div class="map-container">
-        <div class="map-stage">
-            <img id="map-image" class="map-image" src="" alt="План завода"></img><div id="interactive-areas"></div>
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            overflow: auto;
+        }
+        
+        .container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            overflow: auto;
+            background-color: #e0e0e0;
+        }
+        
+        .map-container {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+        
+        .map-stage {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .map-image {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        #interactive-areas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .interactive-area {
+            position: absolute;
+            cursor: pointer;
+            border: 2px solid transparent;
+            background-color: rgba(102, 255, 102, 0.3); /* светло-зеленый, полупрозрачный */
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+            z-index: 10;
+        }
+        .interactive-area:hover {
+            border-color: #4CAF50;
+            background-color: rgba(102, 255, 102, 0.5); /* чуть плотнее при наведении */
+        }
+        
+        .popup {
+            position: fixed;
+            background-color: white;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            padding: 15px;
+            min-width: 300px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            font-size: 14px;
+        }
+        
+        .popup.visible {
+            display: block;
+        }
+        
+        .popup-header {
+            font-weight: bold;
+            font-size: 16px;
+            color: #4CAF50;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #4CAF50;
+        }
+        
+        .popup-content {
+            margin-top: 10px;
+        }
+        
+        .popup-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .popup-item:last-child {
+            border-bottom: none;
+        }
+        
+        .popup-item-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .popup-item-detail {
+            color: #666;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        .popup-no-data {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 10px;
+        }
+        
+        .popup-close {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 20px;
+            color: #999;
+            line-height: 1;
+        }
+        
+        .popup-close:hover {
+            color: #333;
+        }
+    </style></head><body>
+    <div class="container">
+        <div class="map-container">
+            <div class="map-stage">
+                <img id="map-image" class="map-image" src="" alt="План завода"></img><div id="interactive-areas"></div>
+            </div>
         </div>
     </div>
-</div>
-
-<div id="popup" class="popup">
-    <span class="popup-close" onclick="closePopup()">×</span>
-    <div class="popup-header" id="popup-header"></div>
-    <div class="popup-content" id="popup-content"></div>
-</div>
-
-<script>
-    // Определение данных
-    const externalData = "scriptData";
     
-    // Пути к данным и изображению карты
-    const interactiveAreasPath = "areasData";
-    const mapImagePath = "imagePath";
-</script><script>
-    let parsedData = null;
-    let interactiveAreas = [];
-    let mapImage = null;
-    let interactiveAreasContainer = null;
-    let mapReady = false;
-    let areasReady = false;
-
-    const interactiveAreaSchema = {
-        required: ['name', 'x', 'y', 'width', 'height', 'matchField'],
-        propertyTypes: {
-            name: 'string',
-            x: 'number',
-            y: 'number',
-            width: 'number',
-            height: 'number',
-            matchField: 'string',
-            matchValue: 'string'
-        }
-    };
+    <div id="popup" class="popup">
+        <span class="popup-close" onclick="closePopup()">×</span>
+        <div class="popup-header" id="popup-header"></div>
+        <div class="popup-content" id="popup-content"></div>
+    </div>
     
-    // Функция для нормализации путей Windows (конвертация обратных слешей в прямые)
-    function normalizePath(path) {
-        if (!path || typeof path !== 'string') {
-            return path;
-        }
-        // Заменяем обратные слеши на прямые
-        return path.replace(/\\/g, '/');
-    }
+    <script>
+        let parsedData = null;
+        let interactiveAreas = [];
+        let mapImage = null;
+        let interactiveAreasContainer = null;
+        let mapReady = false;
+        let areasReady = false;
     
-    // Функция для конвертации абсолютного пути Windows в file:// URL
-    function convertToFileUrl(path) {
-        if (!path || typeof path !== 'string') {
-            return path;
+        const interactiveAreaSchema = {
+            required: ['name', 'x', 'y', 'width', 'height', 'matchField'],
+            propertyTypes: {
+                name: 'string',
+                x: 'number',
+                y: 'number',
+                width: 'number',
+                height: 'number',
+                matchField: 'string',
+                matchValue: 'string'
+            }
+        };
+        
+        // Функция для нормализации путей Windows (конвертация обратных слешей в прямые)
+        function normalizePath(path) {
+            if (!path || typeof path !== 'string') {
+                return path;
+            }
+            // Заменяем обратные слеши на прямые
+            return path.replace(/\\/g, '/');
         }
-        // Если путь уже является URL, возвращаем как есть
-        if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('file://')) {
-            return path;
+        
+        // Функция для конвертации абсолютного пути Windows в file:// URL
+        function convertToFileUrl(path) {
+            if (!path || typeof path !== 'string') {
+                return path;
+            }
+            // Если путь уже является URL, возвращаем как есть
+            if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('file://')) {
+                return path;
+            }
+            // Если это абсолютный путь Windows (начинается с буквы диска)
+            if (/^[A-Za-z]:/.test(path)) {
+                const normalized = normalizePath(path);
+                return 'file:///' + normalized;
+            }
+            // Иначе возвращаем нормализованный путь
+            return normalizePath(path);
         }
-        // Если это абсолютный путь Windows (начинается с буквы диска)
-        if (/^[A-Za-z]:/.test(path)) {
-            const normalized = normalizePath(path);
-            return 'file:///' + normalized;
-        }
-        // Иначе возвращаем нормализованный путь
-        return normalizePath(path);
-    }
-    
-    // Функция для парсинга строки данных в массив объектов
-    function parseDataString(dataString) {
-        if (!dataString || typeof dataString !== 'string') {
-            return null;
-        }
-
-        try {
-            const trimmedString = dataString.trim();
-
-            if (!trimmedString) {
+        
+        // Функция для парсинга строки данных в массив объектов
+        function parseDataString(dataString) {
+            if (!dataString || typeof dataString !== 'string') {
                 return null;
             }
-
-            const parsed = JSON.parse(trimmedString);
-
-            if (!Array.isArray(parsed)) {
-                throw new Error('Ожидается массив объектов с данными для карты.');
+    
+            try {
+                const trimmedString = dataString.trim();
+    
+                if (!trimmedString) {
+                    return null;
+                }
+    
+                const parsed = JSON.parse(trimmedString);
+    
+                if (!Array.isArray(parsed)) {
+                    throw new Error('Ожидается массив объектов с данными для карты.');
+                }
+    
+                return parsed;
+            } catch (error) {
+                const message = `Не удалось распарсить строку данных: ${error.message}`;
+                console.error(message);
+                throw new Error(message);
             }
-
-            return parsed;
-        } catch (error) {
-            const message = `Не удалось распарсить строку данных: ${error.message}`;
-            console.error(message);
-            throw new Error(message);
         }
-    }
-
-    // Функция для преобразования даты из формата "dd.mm.yyyy hh:mm:ss" в Date
-    function parseDateTime(dateTimeString) {
-        if (!dateTimeString) return null;
-        
-        if (dateTimeString.includes('-') || dateTimeString.includes('T')) {
+    
+        // Функция для преобразования даты из формата "dd.mm.yyyy hh:mm:ss" в Date
+        function parseDateTime(dateTimeString) {
+            if (!dateTimeString) return null;
+            
+            if (dateTimeString.includes('-') || dateTimeString.includes('T')) {
+                return new Date(dateTimeString);
+            }
+            
+            const match = dateTimeString.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+            if (match) {
+                const [, day, month, year, hour, minute, second] = match;
+                return new Date(year, month - 1, day, hour, minute, second);
+            }
+            
             return new Date(dateTimeString);
         }
-        
-        const match = dateTimeString.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
-        if (match) {
-            const [, day, month, year, hour, minute, second] = match;
-            return new Date(year, month - 1, day, hour, minute, second);
-        }
-        
-        return new Date(dateTimeString);
-    }
-
-    // Функция для форматирования даты и времени
-    function formatDateTime(dateTimeString) {
-        if (!dateTimeString) return '';
-        
-        const date = parseDateTime(dateTimeString);
-        if (!date || isNaN(date.getTime())) return dateTimeString;
-        
-        return date.toLocaleString('ru-RU', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
-
-    function validateInteractiveAreasData(data) {
-        if (!Array.isArray(data)) {
-            throw new Error('Интерактивные области должны быть массивом объектов.');
-        }
-
-        data.forEach((area, index) => {
-            interactiveAreaSchema.required.forEach(field => {
-                if (area[field] === undefined) {
-                    throw new Error(`Область №${index + 1} не содержит обязательное поле "${field}".`);
-                }
+    
+        // Функция для форматирования даты и времени
+        function formatDateTime(dateTimeString) {
+            if (!dateTimeString) return '';
+            
+            const date = parseDateTime(dateTimeString);
+            if (!date || isNaN(date.getTime())) return dateTimeString;
+            
+            return date.toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
             });
-
-            Object.entries(interactiveAreaSchema.propertyTypes).forEach(([field, type]) => {
-                if (area[field] !== undefined && typeof area[field] !== type) {
-                    throw new Error(`Поле "${field}" в области №${index + 1} должно быть типа ${type}.`);
-                }
-            });
-        });
-    }
-
-    // Функция для парсинга данных интерактивных областей
-    function parseInteractiveAreasString(rawString) {
-        if (!rawString || typeof rawString !== 'string') {
-            return [];
         }
-
-        try {
-            const trimmed = rawString.trim();
-
-            if (!trimmed) {
+    
+        function validateInteractiveAreasData(data) {
+            if (!Array.isArray(data)) {
+                throw new Error('Интерактивные области должны быть массивом объектов.');
+            }
+    
+            data.forEach((area, index) => {
+                interactiveAreaSchema.required.forEach(field => {
+                    if (area[field] === undefined) {
+                        throw new Error(`Область №${index + 1} не содержит обязательное поле "${field}".`);
+                    }
+                });
+    
+                Object.entries(interactiveAreaSchema.propertyTypes).forEach(([field, type]) => {
+                    if (area[field] !== undefined && typeof area[field] !== type) {
+                        throw new Error(`Поле "${field}" в области №${index + 1} должно быть типа ${type}.`);
+                    }
+                });
+            });
+        }
+    
+        // Функция для парсинга данных
+        function parseManualDataString(rawString) {
+            if (!rawString || typeof rawString !== 'string') return [];
+            try {
+                // Шаг 1: заставим строку выглядеть как массив объектов JSON
+                let fixed = rawString
+                    .replace(/^\s*{/, '[{').replace(/}\s*$/, '}]')
+                    .replace(/},\s*{/g, '},{')
+                    // кавычки вокруг ключей
+                    .replace(/([{\s,])([А-яA-zЁё№_\w]+):/g, '$1"$2":');
+                // Шаг 2: кавычки вокруг значений (всё до запятой/конца объекта)
+                fixed = fixed.replace(/:\s*([^,"}\n][^,}\n]*)(?=[,}])/g, function(match, value) {
+                    let val = value.trim();
+                    // если уже в кавычках — оставляем
+                    if (/^".*"$/.test(val)) return ':' + val;
+                    // число (в том числе десятичные) — не экранируем
+                    if (/^-?\d+([.,]\d+)?$/.test(val.replace(',', '.'))) return ':' + val;
+                    // иначе — строка: экранируем в кавычки и экранируем кавычки внутри
+                    return ':"' + val.replace(/"/g, '\\"') + '"';
+                });
+    
+                const parsed = JSON.parse(fixed);
+                return parsed;
+            } catch (error) {
+                const message = `Не удалось распарсить строку ручных данных: ${error.message}`;
+                console.error(message);
+                throw new Error(message);
+            }
+        }
+    
+        // Функция для парсинга данных интерактивных областей
+        function parseInteractiveAreasString(rawString) {
+            if (!rawString || typeof rawString !== 'string') {
                 return [];
             }
-
-            const parsed = JSON.parse(trimmed);
-            validateInteractiveAreasData(parsed);
-            return parsed;
-        } catch (error) {
-            const message = `Не удалось распарсить файл интерактивных областей: ${error.message}`;
-            console.error(message);
-            throw new Error(message);
-        }
-    }
-
-    // Функция для фильтрации данных по объекту
-    function filterDataByObject(dataArray, matchField, matchValue) {
-        if (!dataArray || !Array.isArray(dataArray)) {
-            return [];
-        }
-        
-        return dataArray.filter(item => {
-            const fieldValue = item[matchField];
-            if (!fieldValue) return false;
-            
-            // Проверяем точное совпадение или вхождение подстроки
-            const fieldStr = String(fieldValue).toLowerCase();
-            const matchStr = String(matchValue).toLowerCase();
-            
-            return fieldStr === matchStr || fieldStr.includes(matchStr) || matchStr.includes(fieldStr);
-        });
-    }
-
-    function validateAreaBounds(areaConfig, naturalWidth, naturalHeight) {
-        const errors = [];
-
-        if (!areaConfig || typeof areaConfig !== 'object') {
-            errors.push('Конфигурация области не задана или имеет неверный формат');
-            return { isValid: false, errors };
-        }
-
-        const numericValues = {};
-        ['x', 'y', 'width', 'height'].forEach(field => {
-            const value = Number(areaConfig[field]);
-            numericValues[field] = value;
-
-            if (!Number.isFinite(value)) {
-                errors.push(`Поле ${field} должно быть числом`);
-                return;
-            }
-
-            if ((field === 'width' || field === 'height') && value <= 0) {
-                errors.push(`Поле ${field} должно быть больше 0`);
-            }
-
-            if ((field === 'x' || field === 'y') && value < 0) {
-                errors.push(`Поле ${field} не может быть отрицательным`);
-            }
-        });
-
-        if (Number.isFinite(numericValues.x) && Number.isFinite(numericValues.width)) {
-            if (numericValues.x + numericValues.width > naturalWidth) {
-                errors.push('Область выходит за правую границу карты');
-            }
-        }
-
-        if (Number.isFinite(numericValues.y) && Number.isFinite(numericValues.height)) {
-            if (numericValues.y + numericValues.height > naturalHeight) {
-                errors.push('Область выходит за нижнюю границу карты');
-            }
-        }
-
-        return { isValid: errors.length === 0, errors };
-    }
-
-    // Функция для создания интерактивной области
-    function createInteractiveArea(areaConfig, scaleX, scaleY) {
-        const area = document.createElement('div');
-        area.className = 'interactive-area';
-        const x = Number(areaConfig.x);
-        const y = Number(areaConfig.y);
-        const width = Number(areaConfig.width);
-        const height = Number(areaConfig.height);
-
-        area.style.left = (x * scaleX) + 'px';
-        area.style.top = (y * scaleY) + 'px';
-        area.style.width = (width * scaleX) + 'px';
-        area.style.height = (height * scaleY) + 'px';
-        area.title = areaConfig.name;
-        
-        area.addEventListener('mouseenter', function(e) {
-            showPopup(e, areaConfig);
-        });
-        
-        area.addEventListener('mousemove', function(e) {
-            updatePopupPosition(e);
-        });
-        
-        area.addEventListener('mouseleave', function() {
-            closePopup();
-        });
-        
-        return area;
-    }
-
-    // Функция для отображения всплывающего окна
-    function showPopup(event, areaConfig) {
-        const popup = document.getElementById('popup');
-        const popupHeader = document.getElementById('popup-header');
-        const popupContent = document.getElementById('popup-content');
-        
-        if (!parsedData || !Array.isArray(parsedData)) {
-            popupHeader.textContent = areaConfig.name;
-            popupContent.innerHTML = '<div class="popup-no-data">Нет данных для отображения</div>';
-        } else {
-            const filteredData = filterDataByObject(
-                parsedData, 
-                areaConfig.matchField || 'причал', 
-                areaConfig.matchValue || areaConfig.name
-            );
-            
-            popupHeader.textContent = areaConfig.name;
-            
-            if (filteredData.length === 0) {
-                popupContent.innerHTML = '<div class="popup-no-data">Нет данных для этого объекта</div>';
-            } else {
-                let contentHTML = '';
-                filteredData.forEach((item, index) => {
-                    contentHTML += `
-                        <div class="popup-item">
-                            <div class="popup-item-title">Запись ${index + 1}</div>
-                            ${item.судно ? `<div class="popup-item-detail"><strong>Судно:</strong> ${item.судно}</div>` : ''}
-                            ${item.причал ? `<div class="popup-item-detail"><strong>Причал:</strong> ${item.причал}</div>` : ''}
-                            ${item.вид_подхода ? `<div class="popup-item-detail"><strong>Вид подхода:</strong> ${item.вид_подхода}</div>` : ''}
-                            ${item.дата_швартовки ? `<div class="popup-item-detail"><strong>Дата швартовки:</strong> ${formatDateTime(item.дата_швартовки)}</div>` : ''}
-                            ${item.дата_выбытия ? `<div class="popup-item-detail"><strong>Дата выбытия:</strong> ${formatDateTime(item.дата_выбытия)}</div>` : ''}
-                        </div>
-                    `;
+            try {
+                // 1. Преобразуем в более «json-подобный» формат:
+                let fixed = rawString
+                // Добавим квадратные скобки в начале/конце если их нет
+                .replace(/^\s*{/, '[{').replace(/}\s*$/, '}]')
+                // заменяем },{ на "},{"
+                .replace(/},\s*{/g, '},{')
+                // добавим кавычки вокруг ключей (грубый способ, но работает для латиницы/кириллицы и чисел)
+                .replace(/([{\s,])(\w+):/g, '$1"$2":')
+                // добавим кавычки вокруг значений-строк (по ключам, для русских)
+                .replace(/:\s*([А-яA-zЁё№\d\s\\/-]+)([,\}])/g, function(match, p1, p2) {
+                    // если уже есть кавычки — пропустим
+                    if(/^".*"$/.test(p1.trim())) return ':' + p1 + p2;
+                    // если число — пропустим
+                    if(/^\d+([\.,]\d+)?$/.test(p1.trim())) return ':' + p1 + p2;
+                    return ':"' + p1.trim().replace(/"/g, '\\"') + '"' + p2;
                 });
-                popupContent.innerHTML = contentHTML;
+    
+                const parsed = JSON.parse(fixed);
+                validateInteractiveAreasData(parsed);
+                return parsed;
+            } catch (error) {
+                const message = `Не удалось распарсить файл интерактивных областей: ${error.message}`;
+                console.error(message);
+                throw new Error(message);
             }
         }
-        
-        popup.classList.add('visible');
-        updatePopupPosition(event);
-    }
-
-    // Функция для обновления позиции всплывающего окна
-    function updatePopupPosition(event) {
-        const popup = document.getElementById('popup');
-        const popupRect = popup.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        
-        let left = event.clientX + 15;
-        let top = event.clientY + 15;
-        
-        // Корректировка позиции, чтобы попап не выходил за границы экрана
-        if (left + popupRect.width > viewportWidth) {
-            left = event.clientX - popupRect.width - 15;
+    
+        // Функция для фильтрации данных по объекту
+        function filterDataByObject(dataArray, matchField, matchValue) {
+            if (!dataArray || !Array.isArray(dataArray)) {
+                return [];
+            }
+            
+            return dataArray.filter(item => {
+                const fieldValue = item[matchField];
+                if (!fieldValue) return false;
+                
+                // Проверяем точное совпадение или вхождение подстроки
+                const fieldStr = String(fieldValue).toLowerCase();
+                const matchStr = String(matchValue).toLowerCase();
+                
+                return fieldStr === matchStr || fieldStr.includes(matchStr) || matchStr.includes(fieldStr);
+            });
         }
-        if (top + popupRect.height > viewportHeight) {
-            top = event.clientY - popupRect.height - 15;
+    
+        function validateAreaBounds(areaConfig, naturalWidth, naturalHeight) {
+            const errors = [];
+    
+            if (!areaConfig || typeof areaConfig !== 'object') {
+                errors.push('Конфигурация области не задана или имеет неверный формат');
+                return { isValid: false, errors };
+            }
+    
+            const numericValues = {};
+            ['x', 'y', 'width', 'height'].forEach(field => {
+                const value = Number(areaConfig[field]);
+                numericValues[field] = value;
+    
+                if (!Number.isFinite(value)) {
+                    errors.push(`Поле ${field} должно быть числом`);
+                    return;
+                }
+    
+                if ((field === 'width' || field === 'height') && value <= 0) {
+                    errors.push(`Поле ${field} должно быть больше 0`);
+                }
+    
+                if ((field === 'x' || field === 'y') && value < 0) {
+                    errors.push(`Поле ${field} не может быть отрицательным`);
+                }
+            });
+    
+            if (Number.isFinite(numericValues.x) && Number.isFinite(numericValues.width)) {
+                if (numericValues.x + numericValues.width > naturalWidth) {
+                    errors.push('Область выходит за правую границу карты');
+                }
+            }
+    
+            if (Number.isFinite(numericValues.y) && Number.isFinite(numericValues.height)) {
+                if (numericValues.y + numericValues.height > naturalHeight) {
+                    errors.push('Область выходит за нижнюю границу карты');
+                }
+            }
+    
+            return { isValid: errors.length === 0, errors };
         }
-        
-        popup.style.left = left + 'px';
-        popup.style.top = top + 'px';
-    }
-
-    // Функция для закрытия всплывающего окна
-    function closePopup() {
-        const popup = document.getElementById('popup');
-        popup.classList.remove('visible');
-    }
-
-    // Функция для рендеринга интерактивных областей с учетом масштаба
-    function renderInteractiveAreas() {
-        if (!mapReady || !areasReady || !mapImage || !interactiveAreasContainer) {
-            return;
+    
+        // Функция для создания интерактивной области
+        function createInteractiveArea(areaConfig, scaleX, scaleY) {
+            const area = document.createElement('div');
+            area.className = 'interactive-area';
+            const x = Number(areaConfig.x);
+            const y = Number(areaConfig.y);
+            const width = Number(areaConfig.width);
+            const height = Number(areaConfig.height);
+    
+            area.style.left = (x * scaleX) + 'px';
+            area.style.top = (y * scaleY) + 'px';
+            area.style.width = (width * scaleX) + 'px';
+            area.style.height = (height * scaleY) + 'px';
+            area.title = areaConfig.name;
+            
+            area.addEventListener('mouseenter', function(e) {
+                showPopup(e, areaConfig);
+            });
+            
+            area.addEventListener('mousemove', function(e) {
+                updatePopupPosition(e);
+            });
+            
+            area.addEventListener('mouseleave', function() {
+                closePopup();
+            });
+            
+            return area;
         }
-        
-        const clientWidth = mapImage.clientWidth;
-        const clientHeight = mapImage.clientHeight;
-        const naturalWidth = mapImage.naturalWidth;
-        const naturalHeight = mapImage.naturalHeight;
-        
-        if (!clientWidth || !clientHeight || !naturalWidth || !naturalHeight) {
-            return;
+    
+        // Функция для отображения всплывающего окна
+        function showPopup(event, areaConfig) {
+            const popup = document.getElementById('popup');
+            const popupHeader = document.getElementById('popup-header');
+            const popupContent = document.getElementById('popup-content');
+            
+            if (!parsedData || !Array.isArray(parsedData)) {
+                popupHeader.textContent = areaConfig.name;
+                popupContent.innerHTML = '<div class="popup-no-data">Нет данных для отображения</div>';
+            } else {
+                const filteredData = filterDataByObject(
+                    parsedData, 
+                    areaConfig.matchField || 'причал', 
+                    areaConfig.matchValue || areaConfig.name
+                );
+                
+                popupHeader.textContent = areaConfig.name;
+                
+                if (filteredData.length === 0) {
+                    popupContent.innerHTML = '<div class="popup-no-data">Нет данных для этого объекта</div>';
+                } else {
+                    let contentHTML = '';
+                    filteredData.forEach((item, index) => {
+                        contentHTML += `
+                            <div class="popup-item">
+                                <div class="popup-item-title">Запись ${index + 1}</div>
+                                ${item.судно ? `<div class="popup-item-detail"><strong>Судно:</strong> ${item.судно}</div>` : ''}
+                                ${item.причал ? `<div class="popup-item-detail"><strong>Причал:</strong> ${item.причал}</div>` : ''}
+                                ${item.вид_подхода ? `<div class="popup-item-detail"><strong>Вид подхода:</strong> ${item.вид_подхода}</div>` : ''}
+                                ${item.дата_швартовки ? `<div class="popup-item-detail"><strong>Дата швартовки:</strong> ${formatDateTime(item.дата_швартовки)}</div>` : ''}
+                                ${item.дата_выбытия ? `<div class="popup-item-detail"><strong>Дата выбытия:</strong> ${formatDateTime(item.дата_выбытия)}</div>` : ''}
+                            </div>
+                        `;
+                    });
+                    popupContent.innerHTML = contentHTML;
+                }
+            }
+            
+            popup.classList.add('visible');
+            updatePopupPosition(event);
         }
-        
-        const scaleX = clientWidth / naturalWidth;
-        const scaleY = clientHeight / naturalHeight;
-        
-        interactiveAreasContainer.innerHTML = '';
-        
-        if (!interactiveAreas || interactiveAreas.length === 0) {
-            console.warn('Интерактивные области отсутствуют или не загружены.');
-            return;
+    
+        // Функция для обновления позиции всплывающего окна
+        function updatePopupPosition(event) {
+            const popup = document.getElementById('popup');
+            const popupRect = popup.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            let left = event.clientX + 15;
+            let top = event.clientY + 15;
+            
+            // Корректировка позиции, чтобы попап не выходил за границы экрана
+            if (left + popupRect.width > viewportWidth) {
+                left = event.clientX - popupRect.width - 15;
+            }
+            if (top + popupRect.height > viewportHeight) {
+                top = event.clientY - popupRect.height - 15;
+            }
+            
+            popup.style.left = left + 'px';
+            popup.style.top = top + 'px';
         }
-        
-        interactiveAreas.forEach(areaConfig => {
-            const validation = validateAreaBounds(areaConfig, naturalWidth, naturalHeight);
-            if (!validation.isValid) {
-                console.warn(`Область "${areaConfig.name || 'без названия'}" пропущена: ${validation.errors.join('; ')}`);
+    
+        // Функция для закрытия всплывающего окна
+        function closePopup() {
+            const popup = document.getElementById('popup');
+            popup.classList.remove('visible');
+        }
+    
+        // Функция для рендеринга интерактивных областей с учетом масштаба
+        function renderInteractiveAreas() {
+            if (!mapReady || !areasReady || !mapImage || !interactiveAreasContainer) {
                 return;
             }
-
-            const area = createInteractiveArea(areaConfig, scaleX, scaleY);
-            interactiveAreasContainer.appendChild(area);
-        });
-    }
-    
-    function loadMapImage() {
-        if (!mapImage) {
-            return;
-        }
-        
-        if (!mapImagePath) {
-            console.warn('Путь к изображению карты не указан. Укажите путь в переменной mapImagePath.');
-            return;
-        }
-        
-        // Нормализуем путь (конвертируем обратные слеши в прямые)
-        // Для локальных файлов через file:// используем относительный путь или file:// URL
-        let imageSrc = mapImagePath;
-        
-        // Если это абсолютный путь Windows и файл открыт через file://, конвертируем в file:// URL
-        if (/^[A-Za-z]:/.test(mapImagePath) && window.location.protocol === 'file:') {
-            imageSrc = convertToFileUrl(mapImagePath);
-        } else {
-            // Иначе просто нормализуем путь
-            imageSrc = normalizePath(mapImagePath);
-        }
-        
-        mapImage.src = imageSrc;
-        
-        if (mapImage.complete && mapImage.naturalWidth) {
-            mapReady = true;
-            renderInteractiveAreas();
-            return;
-        }
-        
-        mapImage.addEventListener('load', function() {
-            mapReady = true;
-            renderInteractiveAreas();
-        });
-        
-        mapImage.addEventListener('error', function() {
-            console.error('Не удалось загрузить изображение карты по пути:', mapImagePath);
-            console.warn('Попробуйте использовать относительный путь (например, "yard_map.jpg") или запустите через веб-сервер.');
-        });
-    }
-    
-    async function loadInteractiveAreas() {
-        if (!interactiveAreasPath) {
-            console.warn('Путь к файлу интерактивных областей не указан. Укажите путь в переменной interactiveAreasPath.');
-            return;
-        }
-        
-        // Нормализуем путь
-        let areasUrl = interactiveAreasPath;
-        
-        // Если это абсолютный путь Windows и файл открыт через file://, конвертируем в file:// URL
-        if (/^[A-Za-z]:/.test(interactiveAreasPath) && window.location.protocol === 'file:') {
-            areasUrl = convertToFileUrl(interactiveAreasPath);
-        } else {
-            // Иначе просто нормализуем путь
-            areasUrl = normalizePath(interactiveAreasPath);
-        }
-        
-        try {
-            const response = await fetch(areasUrl);
             
-            if (!response.ok) {
-                throw new Error('Код ответа: ' + response.status);
+            const clientWidth = mapImage.clientWidth;
+            const clientHeight = mapImage.clientHeight;
+            const naturalWidth = mapImage.naturalWidth;
+            const naturalHeight = mapImage.naturalHeight;
+            
+            if (!clientWidth || !clientHeight || !naturalWidth || !naturalHeight) {
+                return;
             }
             
-            const text = await response.text();
-            const parsedAreas = parseInteractiveAreasString(text);
+            const scaleX = clientWidth / naturalWidth;
+            const scaleY = clientHeight / naturalHeight;
             
-            if (Array.isArray(parsedAreas) && parsedAreas.length > 0) {
-                interactiveAreas = parsedAreas;
+            interactiveAreasContainer.innerHTML = '';
+            
+            if (!interactiveAreas || interactiveAreas.length === 0) {
+                console.warn('Интерактивные области отсутствуют или не загружены.');
+                return;
+            }
+            
+            interactiveAreas.forEach(areaConfig => {
+                const validation = validateAreaBounds(areaConfig, naturalWidth, naturalHeight);
+                if (!validation.isValid) {
+                    console.warn(`Область "${areaConfig.name || 'без названия'}" пропущена: ${validation.errors.join('; ')}`);
+                    return;
+                }
+    
+                const area = createInteractiveArea(areaConfig, scaleX, scaleY);
+                interactiveAreasContainer.appendChild(area);
+            });
+        }
+        
+        function loadMapImage() {
+            if (!mapImage) {
+                return;
+            }
+            
+            if (!mapImagePath) {
+                console.warn('Путь к изображению карты не указан. Укажите путь в переменной mapImagePath.');
+                return;
+            }
+            
+            // Нормализуем путь (конвертируем обратные слеши в прямые)
+            // Для локальных файлов через file:// используем относительный путь или file:// URL
+            let imageSrc = mapImagePath;
+            
+            // Если это абсолютный путь Windows и файл открыт через file://, конвертируем в file:// URL
+            if (/^[A-Za-z]:/.test(mapImagePath) && window.location.protocol === 'file:') {
+                imageSrc = convertToFileUrl(mapImagePath);
+            } else {
+                // Иначе просто нормализуем путь
+                imageSrc = normalizePath(mapImagePath);
+            }
+            
+            mapImage.src = imageSrc;
+            
+            if (mapImage.complete && mapImage.naturalWidth) {
+                mapReady = true;
+                renderInteractiveAreas();
+                return;
+            }
+            
+            mapImage.addEventListener('load', function() {
+                mapReady = true;
+                renderInteractiveAreas();
+            });
+            
+            mapImage.addEventListener('error', function() {
+                console.error('Не удалось загрузить изображение карты по пути:', mapImagePath);
+                console.warn('Попробуйте использовать относительный путь (например, "yard_map.jpg") или запустите через веб-сервер.');
+            });
+        }
+        
+        function loadInteractiveAreas() {
+            if (!interactiveAreasData) {
+                console.warn('Нет данных или пути к интерактивным областям.');
+                return;
+            }
+    
+            if (Array.isArray(interactiveAreasData)) {
+                interactiveAreas = interactiveAreasData;
                 areasReady = true;
                 renderInteractiveAreas();
-            } else {
-                console.warn('Файл интерактивных областей загружен, но данных нет.');
-            }
-        } catch (error) {
-            if (error.message && (error.message.includes('CORS') || error.message.includes('Failed to fetch'))) {
-                console.error('Ошибка CORS при загрузке интерактивных областей. Для работы с локальными файлами необходимо запустить веб-сервер (например, через Python: python -m http.server или через Live Server в VS Code).');
-                console.warn('Альтернатива: используйте относительные пути (например, "interactiveAreas.json") вместо абсолютных путей Windows.');
-            } else {
-                console.error('Ошибка загрузки интерактивных областей:', error);
+                return;
             }
         }
-    }
-
-    // Инициализация при загрузке страницы
-    document.addEventListener('DOMContentLoaded', function() {
-        mapImage = document.getElementById('map-image');
-        interactiveAreasContainer = document.getElementById('interactive-areas');
-        
-        loadMapImage();
-        loadInteractiveAreas();
-        
-        // Парсим данные
-        if (externalData) {
-            if (typeof externalData === 'string') {
-                try {
-                    parsedData = parseDataString(externalData);
-                } catch (error) {
-                    console.error(error.message);
+        // Определение данных
+        const externalData = parseManualDataString("scriptData");
+        const interactiveAreasData =  parseInteractiveAreasString("areasData");
+        const mapImagePath = "C:/Users/O.Iunina/Desktop/Projects/_Dispetcherskaya/yard_map.jpg";
+    
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            mapImage = document.getElementById('map-image');
+            interactiveAreasContainer = document.getElementById('interactive-areas');
+            
+            loadMapImage();
+            loadInteractiveAreas();
+            
+            // Парсим данные
+            if (externalData) {
+                if (typeof externalData === 'string') {
+                    try {
+                        parsedData = parseDataString(externalData);
+                    } catch (error) {
+                        console.error(error.message);
+                    }
+                } else if (Array.isArray(externalData)) {
+                    parsedData = externalData;
                 }
-            } else if (Array.isArray(externalData)) {
-                parsedData = externalData;
             }
-        }
-        
-        // Закрытие попапа при клике вне его
-        document.addEventListener('click', function(e) {
-            const popup = document.getElementById('popup');
-            if (!popup.contains(e.target) && !e.target.classList.contains('interactive-area')) {
-                closePopup();
-            }
+            
+            // Закрытие попапа при клике вне его
+            document.addEventListener('click', function(e) {
+                const popup = document.getElementById('popup');
+                if (!popup.contains(e.target) && !e.target.classList.contains('interactive-area')) {
+                    closePopup();
+                }
+            });
+            
+            window.addEventListener('resize', function() {
+                renderInteractiveAreas();
+            });
         });
-        
-        window.addEventListener('resize', function() {
-            renderInteractiveAreas();
-        });
-    });
-</script></body></html>
+    </script></body></html>
