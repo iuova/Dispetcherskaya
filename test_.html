@@ -204,19 +204,71 @@
         return normalizePath(path);
     }
     
+    function buildJsonFromObjectStrings(rawString) {
+        const cleanedString = rawString.trim().replace(/^\[/, '').replace(/\]$/, '');
+        if (!cleanedString) {
+            return '[]';
+        }
+
+        const objectStrings = cleanedString.split(/}\s*,\s*{/).map(chunk => {
+            let normalized = chunk.trim();
+            if (!normalized.startsWith('{')) {
+                normalized = '{' + normalized;
+            }
+            if (!normalized.endsWith('}')) {
+                normalized = normalized + '}';
+            }
+            return normalized;
+        });
+
+        const jsonReadyObjects = objectStrings.map(chunk => {
+            const escapedBackslashes = chunk.replace(/\\/g, '\\\\');
+            const quotedKeys = escapedBackslashes.replace(/([{,]\s*)([^,{:]+?)(\s*:\s*)/g, (match, prefix, key, separator) => {
+                const safeKey = key.trim().replace(/"/g, '\\"');
+                return `${prefix}"${safeKey}"${separator}`;
+            });
+
+            const quotedValues = quotedKeys.replace(/:\s*([^,"}{\[\]]+)(?=\s*[},])/g, (match, value) => {
+                const trimmedValue = value.trim();
+
+                if (/^-?\d+(?:[.,]\d+)?$/.test(trimmedValue)) {
+                    return `: ${trimmedValue.replace(',', '.')}`;
+                }
+
+                const safeValue = trimmedValue.replace(/"/g, '\\"');
+                return `: "${safeValue}"`;
+            });
+
+            return quotedValues;
+        });
+
+        return `[${jsonReadyObjects.join(',')}]`;
+    }
+
+    function parseObjectsStringManually(dataString) {
+        const jsonString = buildJsonFromObjectStrings(dataString);
+        const parsed = JSON.parse(jsonString);
+
+        if (!Array.isArray(parsed)) {
+            throw new Error('Ожидается массив объектов с данными для карты.');
+        }
+
+        return parsed;
+    }
+
     // Функция для парсинга строки данных в массив объектов
     function parseDataString(dataString) {
         if (!dataString || typeof dataString !== 'string') {
             return null;
         }
 
+        const trimmedString = dataString.trim();
+
+        if (!trimmedString) {
+            return null;
+        }
+
         try {
-            const trimmedString = dataString.trim();
-
-            if (!trimmedString) {
-                return null;
-            }
-
             const parsed = JSON.parse(trimmedString);
 
             if (!Array.isArray(parsed)) {
@@ -224,10 +276,14 @@
             }
 
             return parsed;
-        } catch (error) {
-            const message = `Не удалось распарсить строку данных: ${error.message}`;
-            console.error(message);
-            throw new Error(message);
+        } catch (jsonError) {
+            try {
+                return parseObjectsStringManually(trimmedString);
+            } catch (manualError) {
+                const message = `Не удалось распарсить строку данных: ${manualError.message}`;
+                console.error(message);
+                throw new Error(message);
+            }
         }
     }
 
