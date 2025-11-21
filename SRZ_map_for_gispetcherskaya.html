@@ -349,12 +349,11 @@
             return dataArray.filter(item => {
                 const fieldValue = item[matchField];
                 if (!fieldValue) return false;
-                
-                // Проверяем точное совпадение или вхождение подстроки
-                const fieldStr = String(fieldValue).toLowerCase();
-                const matchStr = String(matchValue).toLowerCase();
-                
-                return fieldStr === matchStr || fieldStr.includes(matchStr) || matchStr.includes(fieldStr);
+
+                const fieldStr = String(fieldValue).trim().toLowerCase();
+                const matchStr = String(matchValue).trim().toLowerCase();
+
+                return fieldStr === matchStr;
             });
         }
     
@@ -455,7 +454,7 @@
                     filteredData.forEach((item, index) => {
                         contentHTML += `
                             <div class="popup-item">
-                                <div class="popup-item-title">Запись ${index + 1}</div>
+                                <div class="popup-item-title">Судно ${index + 1}</div>
                                 ${item.судно ? `<div class="popup-item-detail"><strong>Судно:</strong> ${item.судно}</div>` : ''}
                                 ${item.причал ? `<div class="popup-item-detail"><strong>Причал:</strong> ${item.причал}</div>` : ''}
                                 ${item.вид_подхода ? `<div class="popup-item-detail"><strong>Вид подхода:</strong> ${item.вид_подхода}</div>` : ''}

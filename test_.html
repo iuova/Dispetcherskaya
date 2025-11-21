@@ -349,12 +349,11 @@
             return dataArray.filter(item => {
                 const fieldValue = item[matchField];
                 if (!fieldValue) return false;
-                
-                // Проверяем точное совпадение или вхождение подстроки
-                const fieldStr = String(fieldValue).toLowerCase();
-                const matchStr = String(matchValue).toLowerCase();
-                
-                return fieldStr === matchStr || fieldStr.includes(matchStr) || matchStr.includes(fieldStr);
+
+                const fieldStr = String(fieldValue).trim().toLowerCase();
+                const matchStr = String(matchValue).trim().toLowerCase();
+
+                return fieldStr === matchStr;
             });
         }
     
@@ -592,8 +591,8 @@
             }
         }
         // Определение данных
-        const externalData = parseManualDataString("{причал: Плавдок №20К, судно: DE MI, вид_подхода: Фактический, дата_швартовки: 14.11.2025 8:00:00, дата_выбытия: 21.11.2025 16:07:52},{причал: Плавдок №20К, судно: GLORY STAR, вид_подхода: Фактический, дата_швартовки: 14.11.2025 9:00:00, дата_выбытия: 21.11.2025 16:07:52},{причал: Причал №26, судно: GLORY STAR, вид_подхода: Фактический, дата_швартовки: 18.11.2025 8:00:00, дата_выбытия: 18.11.2025 7:59:59}");
-        const interactiveAreasData =  parseInteractiveAreasString("{name: СЛИП, x: 916, y: 1033, width: 100, height: 150, matchField: причал, matchValue: СЛИП},{name: причал №27, x: 1669, y: 757, width: 100, height: 150, matchField: причал, matchValue: причал №27},{name: причал №26, x: 1250, y: 704, width: 100, height: 150, matchField: причал, matchValue: причал №26},{name: причал №28, x: 2082, y: 1119, width: 100, height: 150, matchField: причал, matchValue: причал №28},{name: причал №29, x: 2565, y: 1119, width: 100, height: 150, matchField: причал, matchValue: причал №29},{name: пирс №1, x: 1523, y: 465, width: 100, height: 150, matchField: пирс, matchValue: пирс №1},{name: Плавдок №20К, x: 1945, y: 447, width: 100, height: 150, matchField: док, matchValue: плавдок №20К},{name: Плавдок №2, x: 2187, y: 535, width: 100, height: 150, matchField: док, matchValue: плавдок №2},{name: пирс №2, x: 3597, y: 689, width: 100, height: 150, matchField: пирс, matchValue: пирс №2},{name: причал №30, x: 3350, y: 1119, width: 100, height: 150, matchField: причал, matchValue: причал №30},{name: причал №31, x: 3891, y: 997, width: 100, height: 150, matchField: причал, matchValue: причал №31},{name: причал ВМФ, x: 465, y: 1067, width: 100, height: 150, matchField: причал, matchValue: причал ВМФ}");
+        const externalData = parseManualDataString("{причал: Плавдок №20К, судно: DE MI, вид_подхода: Фактический, дата_швартовки: 14.11.2025 8:00:00, дата_выбытия: 21.11.2025 16:35:22},{причал: Плавдок №20К, судно: GLORY STAR, вид_подхода: Фактический, дата_швартовки: 14.11.2025 9:00:00, дата_выбытия: 21.11.2025 16:35:22},{причал: Причал №26, судно: GLORY STAR, вид_подхода: Фактический, дата_швартовки: 18.11.2025 8:00:00, дата_выбытия: 18.11.2025 7:59:59}");
+        const interactiveAreasData =  parseInteractiveAreasString("{name: СЛИП, x: 916, y: 1033, width: 100, height: 150, matchField: причал, matchValue: СЛИП},{name: причал №27, x: 1669, y: 757, width: 100, height: 150, matchField: причал, matchValue: причал №27},{name: причал №26, x: 1250, y: 704, width: 100, height: 150, matchField: причал, matchValue: причал №26},{name: причал №28, x: 2082, y: 1119, width: 100, height: 150, matchField: причал, matchValue: причал №28},{name: причал №29, x: 2565, y: 1119, width: 100, height: 150, matchField: причал, matchValue: причал №29},{name: пирс №1, x: 1523, y: 465, width: 100, height: 150, matchField: причал, matchValue: пирс №1},{name: Плавдок №20К, x: 1945, y: 447, width: 100, height: 150, matchField: причал, matchValue: плавдок №20К},{name: Плавдок №2, x: 2187, y: 535, width: 100, height: 150, matchField: причал, matchValue: плавдок №2},{name: пирс №2, x: 3597, y: 689, width: 100, height: 150, matchField: причал, matchValue: пирс №2},{name: причал №30, x: 3350, y: 1119, width: 100, height: 150, matchField: причал, matchValue: причал №30},{name: причал №31, x: 3891, y: 997, width: 100, height: 150, matchField: причал, matchValue: причал №31},{name: причал ВМФ, x: 465, y: 1067, width: 100, height: 150, matchField: причал, matchValue: причал ВМФ}");
         const mapImagePath = "C:/Users/O.Iunina/Desktop/Projects/_Dispetcherskaya/yard_map.jpg";
     
         // Инициализация при загрузке страницы
