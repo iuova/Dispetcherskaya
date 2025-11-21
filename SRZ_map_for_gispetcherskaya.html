@@ -268,10 +268,11 @@
             return new Date(dateTimeString);
         }
         
-        const match = dateTimeString.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+        const match = dateTimeString.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
         if (match) {
             const [, day, month, year, hour, minute, second] = match;
-            return new Date(year, month - 1, day, hour, minute, second);
+            const safeSecond = second ?? '00';
+            return new Date(year, month - 1, day, hour, minute, safeSecond);
         }
         
         return new Date(dateTimeString);
