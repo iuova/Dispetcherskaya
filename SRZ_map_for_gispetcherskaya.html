@@ -144,7 +144,6 @@
     </div>
     
     <div id="popup" class="popup">
-        <span class="popup-close" onclick="closePopup()">×</span>
         <div class="popup-header" id="popup-header"></div>
         <div class="popup-content" id="popup-content"></div>
     </div>
@@ -454,8 +453,7 @@
                     filteredData.forEach((item, index) => {
                         contentHTML += `
                             <div class="popup-item">
-                                <div class="popup-item-title">Судно ${index + 1}</div>
-                                ${item.судно ? `<div class="popup-item-detail"><strong>Судно:</strong> ${item.судно}</div>` : ''}
+                                <div class="popup-item-title">Судно: ${item.судно}</div>
                                 ${item.причал ? `<div class="popup-item-detail"><strong>Причал:</strong> ${item.причал}</div>` : ''}
                                 ${item.вид_подхода ? `<div class="popup-item-detail"><strong>Вид подхода:</strong> ${item.вид_подхода}</div>` : ''}
                                 ${item.дата_швартовки ? `<div class="popup-item-detail"><strong>Дата швартовки:</strong> ${formatDateTime(item.дата_швартовки)}</div>` : ''}
