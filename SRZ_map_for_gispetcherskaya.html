@@ -51,13 +51,33 @@
             position: absolute;
             cursor: pointer;
             border: 2px solid transparent;
-            background-color: rgba(102, 255, 102, 0.3); /* светло-зеленый, полупрозрачный */
+            /*background-color: rgba(102, 255, 102, 0.3); /* светло-зеленый, полупрозрачный */
             transition: border-color 0.3s ease, background-color 0.3s ease;
             z-index: 10;
         }
         .interactive-area:hover {
             border-color: #4CAF50;
             background-color: rgba(102, 255, 102, 0.5); /* чуть плотнее при наведении */
+        }
+        
+        .ship-icons-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            pointer-events: none;
+            z-index: 11;
+        }
+        
+        .ship-icon {
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
+            filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(100%) contrast(100%);
         }
         
         .popup {
@@ -286,16 +306,108 @@
                     .replace(/},\s*{/g, '},{')
                     // кавычки вокруг ключей
                     .replace(/([{\s,])([А-яA-zЁё№_\w]+):/g, '$1"$2":');
-                // Шаг 2: кавычки вокруг значений (всё до запятой/конца объекта)
-                fixed = fixed.replace(/:\s*([^,"}\n][^,}\n]*)(?=[,}])/g, function(match, value) {
-                    let val = value.trim();
-                    // если уже в кавычках — оставляем
-                    if (/^".*"$/.test(val)) return ':' + val;
-                    // число (в том числе десятичные) — не экранируем
-                    if (/^-?\d+([.,]\d+)?$/.test(val.replace(',', '.'))) return ':' + val;
-                    // иначе — строка: экранируем в кавычки и экранируем кавычки внутри
-                    return ':"' + val.replace(/"/g, '\\"') + '"';
-                });
+                
+                // Шаг 2: обрабатываем значения, правильно обрабатывая кавычки внутри значений
+                // Используем более надежный подход с пошаговым парсингом
+                let processed = '';
+                let i = 0;
+                
+                while (i < fixed.length) {
+                    // Ищем паттерн "ключ":
+                    const keyMatch = fixed.substring(i).match(/^"([^"]+)":\s*/);
+                    if (keyMatch) {
+                        const key = keyMatch[1];
+                        i += keyMatch[0].length; // Перемещаемся после ключа
+                        
+                        // Находим значение до следующей запятой или закрывающей скобки
+                        // Учитываем, что значение может содержать кавычки
+                        let valueStart = i;
+                        let valueEnd = i;
+                        let foundEnd = false;
+                        
+                        // Ищем конец значения - до запятой или закрывающей скобки
+                        // Пропускаем пробелы в начале
+                        while (i < fixed.length && (fixed[i] === ' ' || fixed[i] === '\t')) {
+                            i++;
+                        }
+                        valueStart = i;
+                        
+                        // Ищем конец значения, учитывая кавычки внутри значения
+                        // Если значение начинается с кавычки, ищем закрывающую кавычку
+                        // Иначе ищем запятую или }, но пропускаем кавычки внутри значения
+                        let insideQuotes = false;
+                        let quoteStart = -1;
+                        
+                        for (let j = i; j < fixed.length; j++) {
+                            const char = fixed[j];
+                            const prevChar = j > 0 ? fixed[j - 1] : '';
+                            
+                            // Обрабатываем кавычки (учитываем экранированные)
+                            if (char === '"' && prevChar !== '\\') {
+                                if (!insideQuotes) {
+                                    // Начало значения в кавычках
+                                    insideQuotes = true;
+                                    quoteStart = j;
+                                } else {
+                                    // Конец значения в кавычках
+                                    insideQuotes = false;
+                                    // Проверяем, что после кавычки идет запятая, } или пробел+запятая/}
+                                    let k = j + 1;
+                                    while (k < fixed.length && (fixed[k] === ' ' || fixed[k] === '\t')) {
+                                        k++;
+                                    }
+                                    if (k >= fixed.length || fixed[k] === ',' || fixed[k] === '}') {
+                                        valueEnd = j + 1; // Включаем закрывающую кавычку
+                                        foundEnd = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // Если не внутри кавычек, ищем запятую или закрывающую скобку
+                            if (!insideQuotes) {
+                                if (char === ',' || char === '}') {
+                                    valueEnd = j;
+                                    foundEnd = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (!foundEnd) {
+                            valueEnd = fixed.length;
+                        }
+                        
+                        let value = fixed.substring(valueStart, valueEnd).trim();
+                        
+                        // Обрабатываем значение
+                        processed += `"${key}":`;
+                        
+                        // если уже в кавычках — оставляем
+                        if (/^".*"$/.test(value)) {
+                            processed += value;
+                        }
+                        // число (в том числе десятичные) — не экранируем
+                        else if (/^-?\d+([.,]\d+)?$/.test(value.replace(',', '.'))) {
+                            processed += value;
+                        }
+                        // иначе — строка: экранируем обратные слеши, затем кавычки, затем оборачиваем в кавычки
+                        else {
+                            // Экранируем обратные слеши, затем кавычки
+                            // Это позволяет правильно обрабатывать значения типа: баржа "УДА"
+                            value = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+                            processed += `"${value}"`;
+                        }
+                        
+                        i = valueEnd;
+                    } else {
+                        // Просто копируем символ
+                        processed += fixed[i];
+                        i++;
+                    }
+                }
+                
+                fixed = processed;
     
                 const parsed = JSON.parse(fixed);
                 return parsed;
@@ -412,6 +524,42 @@
             area.style.width = (width * scaleX) + 'px';
             area.style.height = (height * scaleY) + 'px';
             area.title = areaConfig.name;
+            
+            // Проверяем наличие данных для этой области
+            if (parsedData && Array.isArray(parsedData)) {
+                const filteredData = filterDataByObject(
+                    parsedData, 
+                    areaConfig.matchField || 'причал', 
+                    areaConfig.matchValue || areaConfig.name
+                );
+                
+                // Если есть данные, создаем иконки судов
+                if (filteredData.length > 0) {
+                    const iconsContainer = document.createElement('div');
+                    iconsContainer.className = 'ship-icons-container';
+                    
+                    // Создаем иконку для каждой записи
+                    let iconSrc = 'ship.png'; // значение по умолчанию
+                    if (typeof iconImagePath !== 'undefined' && iconImagePath) {
+                        // Если это абсолютный путь Windows и файл открыт через file://, конвертируем в file:// URL
+                        if (/^[A-Za-z]:/.test(iconImagePath) && window.location.protocol === 'file:') {
+                            iconSrc = convertToFileUrl(iconImagePath);
+                        } else {
+                            iconSrc = normalizePath(iconImagePath);
+                        }
+                    }
+                    
+                    for (let i = 0; i < filteredData.length; i++) {
+                        const shipIcon = document.createElement('img');
+                        shipIcon.className = 'ship-icon';
+                        shipIcon.src = iconSrc;
+                        shipIcon.alt = 'Судно';
+                        iconsContainer.appendChild(shipIcon);
+                    }
+                    
+                    area.appendChild(iconsContainer);
+                }
+            }
             
             area.addEventListener('mouseenter', function(e) {
                 showPopup(e, areaConfig);
@@ -589,9 +737,13 @@
             }
         }
         // Определение данных
+        // ВАЖНО: Если в данных есть кавычки в значениях (например, баржа "УДА"), 
+        // используйте обратные кавычки (template literals) вместо обычных кавычек:
+        // const externalData = parseManualDataString(`{причал: Плавдок №2, судно: баржа "УДА", ...}`);
         const externalData = parseManualDataString("scriptData");
         const interactiveAreasData =  parseInteractiveAreasString("areasData");
         const mapImagePath = "C:/Users/O.Iunina/Desktop/Projects/_Dispetcherskaya/yard_map.jpg";
+        const iconImagePath = "C:/Users/O.Iunina/Desktop/Projects/_Dispetcherskaya/ship.png";
     
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
@@ -612,6 +764,11 @@
                 } else if (Array.isArray(externalData)) {
                     parsedData = externalData;
                 }
+            }
+            
+            // Перерисовываем области после загрузки данных, чтобы отобразить иконки
+            if (mapReady && areasReady) {
+                renderInteractiveAreas();
             }
             
             // Закрытие попапа при клике вне его
