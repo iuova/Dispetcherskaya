@@ -6,7 +6,7 @@
 
 ## Основные файлы проекта
 
-- `SRZ_map_for_gispetcherskaya.html` - основной файл интерфейса (HTML, CSS, JS).
+- `DispetcherskayaMain.html` - основной файл интерфейса (HTML, CSS, JS).
 - `interactiveAreas.json` - файл с описанием интерактивных областей для карты.
 - `yard_map.jpg` - изображение плана завода.
 - `dev-journal.md` - журнал разработки и событий проекта.
@@ -56,12 +56,12 @@ node scripts/validateAreas.js --data path/to/data.json --areas interactiveAreas.
 1. Склонируйте репозиторий или скачайте проект.
 2. Поместите актуальную схему завода в `yard_map.jpg`.
 3. Определите в `interactiveAreas.json` области (координаты и привязку к объектам).
-4. В файле `SRZ_map_for_gispetcherskaya.html` задайте пути к своим ресурсам и данным:
+4. В файле `DispetcherskayaMain.html` задайте пути к своим ресурсам и данным:
     - `mapImagePath` — путь к изображению карты (лучше указывать относительный путь `"yard_map.jpg"`).
     - `iconImagePath` — путь к иконке судна (по умолчанию `ship.png`).
     - `interactiveAreasData` — массив интерактивных областей или строка с их описанием (см. раздел выше). В шаблоне используется значение `"areasData"`, его нужно заменить на ваши данные или JSON.
     - `externalData` — массив объектов с данными для всплывающих окон. В шаблоне использовано значение `"scriptData"`, замените его на фактические данные или JSON-строку.
-5. Откройте файл `SRZ_map_for_gispetcherskaya.html` в браузере.
+5. Откройте файл `DispetcherskayaMain.html` в браузере.
     - Для корректной работы загрузки данных с локального диска рекомендуется запускать через локальный веб-сервер:
 
         python -m http.server
