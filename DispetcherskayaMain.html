@@ -606,6 +606,8 @@
                                 ${item.вид_подхода ? `<div class="popup-item-detail"><strong>Вид подхода:</strong> ${item.вид_подхода}</div>` : ''}
                                 ${item.дата_швартовки ? `<div class="popup-item-detail"><strong>Дата швартовки:</strong> ${formatDateTime(item.дата_швартовки)}</div>` : ''}
                                 ${item.дата_выбытия ? `<div class="popup-item-detail"><strong>Дата выбытия:</strong> ${formatDateTime(item.дата_выбытия)}</div>` : ''}
+                                ${item.швартовка_вторым_бортом === true ? `<div class="popup-item-detail"><strong>Швартовка вторым бортом:</strong> Да</div>` : ''}
+                                ${item.швартовка_кормой === true ? `<div class="popup-item-detail"><strong>Швартовка кормой:</strong> Да</div>` : ''}
                             </div>
                         `;
                     });
@@ -647,6 +649,49 @@
     
         // Функция для рендеринга интерактивных областей с учетом масштаба
         function renderInteractiveAreas() {
+            // Проверяем, есть ли валидные данные о судах и причалах
+            let showNoDataBanner = false;
+            if(
+                !parsedData || // данных нет совсем
+                !(Array.isArray(parsedData) && parsedData.length > 0) || // пустой массив
+                !parsedData.some(obj => typeof obj === 'object' && Object.keys(obj).length > 0) // массив только с пустыми объектами или не объектами
+            ) {
+                showNoDataBanner = true;
+            }
+
+            // Показываем только изображение карты и надпись, если данных нет или они некорректные
+            if(showNoDataBanner) {
+                interactiveAreasContainer.innerHTML = '';
+                // Удаляем предыдущий баннер если есть
+                let banner = document.getElementById('no-data-banner');
+                if (banner) banner.remove();
+                // Создаем новую надпись
+                banner = document.createElement('div');
+                banner.id = 'no-data-banner';
+                banner.textContent = 'Данные по судам и причалам за указанный период отсутствуют.';
+                banner.style.position = 'absolute';
+                banner.style.top = '10px';
+                banner.style.left = '50%';
+                banner.style.transform = 'translateX(-50%)';
+                banner.style.background = 'rgba(255,255,255,0.9)';
+                banner.style.padding = '10px 32px';
+                banner.style.fontSize = '18px';
+                banner.style.color = '#444';
+                banner.style.fontWeight = 'bold';
+                banner.style.zIndex = 30;
+                banner.style.borderRadius = '16px';
+                banner.style.boxShadow = '0 2px 10px rgba(0,0,0,0.09)';
+                banner.style.pointerEvents = 'none';
+                // Добавляем к родителю map-stage
+                var mapStage = document.querySelector('.map-stage');
+                if(mapStage) mapStage.appendChild(banner);
+                return; // не показываем никаких интерактивных областей
+            } else {
+                // Удаляем баннер если вдруг он есть
+                let banner = document.getElementById('no-data-banner');
+                if (banner) banner.remove();
+            }
+
             if (!mapReady || !areasReady || !mapImage || !interactiveAreasContainer) {
                 return;
             }
@@ -737,13 +782,10 @@
             }
         }
         // Определение данных
-        // ВАЖНО: Если в данных есть кавычки в значениях (например, баржа "УДА"), 
-        // используйте обратные кавычки (template literals) вместо обычных кавычек:
-        // const externalData = parseManualDataString(`{причал: Плавдок №2, судно: баржа "УДА", ...}`);
         const externalData = parseManualDataString("scriptData");
         const interactiveAreasData =  parseInteractiveAreasString("areasData");
-        const mapImagePath = "C:/Users/O.Iunina/Desktop/Projects/_Dispetcherskaya/yard_map.jpg";
-        const iconImagePath = "C:/Users/O.Iunina/Desktop/Projects/_Dispetcherskaya/ship.png";
+        const mapImagePath = "C:/Отладка/_Dispetcherskaya/yard_map.jpg";
+        const iconImagePath = "C:/Отладка/_Dispetcherskaya/ship.png";
     
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
