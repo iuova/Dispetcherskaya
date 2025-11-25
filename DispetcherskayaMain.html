@@ -77,6 +77,8 @@
             height: 30px;
             object-fit: contain;
             filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(100%) contrast(100%);
+            cursor: pointer;
+            pointer-events: auto;
         }
         
         .popup {
@@ -552,6 +554,23 @@
                         shipIcon.className = 'ship-icon';
                         shipIcon.src = iconSrc;
                         shipIcon.alt = 'Судно';
+                        
+                        // Сохраняем данные судна для этой иконки
+                        const shipData = filteredData[i];
+                        
+                        // Добавляем обработчики событий на иконку
+                        shipIcon.addEventListener('mouseenter', function(e) {
+                            showPopup(e, shipData, areaConfig);
+                        });
+                        
+                        shipIcon.addEventListener('mousemove', function(e) {
+                            updatePopupPosition(e);
+                        });
+                        
+                        shipIcon.addEventListener('mouseleave', function() {
+                            closePopup();
+                        });
+                        
                         iconsContainer.appendChild(shipIcon);
                     }
                     
@@ -559,59 +578,32 @@
                 }
             }
             
-            area.addEventListener('mouseenter', function(e) {
-                showPopup(e, areaConfig);
-            });
-            
-            area.addEventListener('mousemove', function(e) {
-                updatePopupPosition(e);
-            });
-            
-            area.addEventListener('mouseleave', function() {
-                closePopup();
-            });
-            
             return area;
         }
     
         // Функция для отображения всплывающего окна
-        function showPopup(event, areaConfig) {
+        function showPopup(event, shipData, areaConfig) {
             const popup = document.getElementById('popup');
             const popupHeader = document.getElementById('popup-header');
             const popupContent = document.getElementById('popup-content');
             
-            // Проверяем наличие данных
-            if (!parsedData || !Array.isArray(parsedData)) {
-                // Нет данных - не показываем попап
+            // Проверяем наличие данных судна
+            if (!shipData) {
                 return;
             }
             
-            const filteredData = filterDataByObject(
-                parsedData, 
-                areaConfig.matchField || 'причал', 
-                areaConfig.matchValue || areaConfig.name
-            );
+            // Показываем попап с информацией по одному судну
+            popupHeader.textContent = areaConfig ? areaConfig.name : '';
             
-            // Если нет отфильтрованных данных - не показываем попап
-            if (filteredData.length === 0) {
-                return;
-            }
-            
-            // Есть данные - показываем попап
-            popupHeader.textContent = areaConfig.name;
-            
-            let contentHTML = '';
-            filteredData.forEach((item, index) => {
-                contentHTML += `
-                    <div class="popup-item">
-                        <div class="popup-item-title">Судно: ${item.судно}</div>
-                        ${item.причал ? `<div class="popup-item-detail"><strong>Причал:</strong> ${item.причал}</div>` : ''}
-                        ${item.вид_подхода ? `<div class="popup-item-detail"><strong>Вид подхода:</strong> ${item.вид_подхода}</div>` : ''}
-                        ${item.дата_швартовки ? `<div class="popup-item-detail"><strong>Дата швартовки:</strong> ${formatDateTime(item.дата_швартовки)}</div>` : ''}
-                        ${item.дата_выбытия ? `<div class="popup-item-detail"><strong>Дата выбытия:</strong> ${formatDateTime(item.дата_выбытия)}</div>` : ''}
-                    </div>
-                `;
-            });
+            let contentHTML = `
+                <div class="popup-item">
+                    <div class="popup-item-title">Судно: ${shipData.судно || 'Не указано'}</div>
+                    ${shipData.причал ? `<div class="popup-item-detail"><strong>Причал:</strong> ${shipData.причал}</div>` : ''}
+                    ${shipData.вид_подхода ? `<div class="popup-item-detail"><strong>Вид подхода:</strong> ${shipData.вид_подхода}</div>` : ''}
+                    ${shipData.дата_швартовки ? `<div class="popup-item-detail"><strong>Дата швартовки:</strong> ${formatDateTime(shipData.дата_швартовки)}</div>` : ''}
+                    ${shipData.дата_выбытия ? `<div class="popup-item-detail"><strong>Дата выбытия:</strong> ${formatDateTime(shipData.дата_выбытия)}</div>` : ''}
+                </div>
+            `;
             popupContent.innerHTML = contentHTML;
             
             popup.classList.add('visible');
@@ -772,7 +764,9 @@
             // Закрытие попапа при клике вне его
             document.addEventListener('click', function(e) {
                 const popup = document.getElementById('popup');
-                if (!popup.contains(e.target) && !e.target.classList.contains('interactive-area')) {
+                if (!popup.contains(e.target) && 
+                    !e.target.classList.contains('interactive-area') && 
+                    !e.target.classList.contains('ship-icon')) {
                     closePopup();
                 }
             });
