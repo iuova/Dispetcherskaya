@@ -300,8 +300,11 @@
         function formatDateTime(dateTimeString) {
             if (!dateTimeString) return '';
             
-            const date = parseDateTime(dateTimeString);
-            if (!date || isNaN(date.getTime())) return dateTimeString;
+            // Убираем кавычки из исходной строки
+            const cleanedString = String(dateTimeString).replace(/"/g, '');
+            
+            const date = parseDateTime(cleanedString);
+            if (!date || isNaN(date.getTime())) return cleanedString;
             
             // Форматируем вручную в формате dd.mm.yyyy hh:mm:ss
             const day = String(date.getDate()).padStart(2, '0');
