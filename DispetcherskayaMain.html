@@ -66,18 +66,35 @@
             left: 50%;
             transform: translate(-50%, -50%);
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             justify-content: center;
-            gap: 5px;
-            pointer-events: none;
+            gap: 12px;
+            pointer-events: auto;
             z-index: 11;
         }
-        
+
         .ship-icon {
             width: 30px;
             height: 30px;
             object-fit: contain;
             filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(100%) contrast(100%);
+        }
+
+        .ship-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            pointer-events: auto;
+        }
+
+        .ship-label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #991fcc;
+            text-align: center;
+            white-space: nowrap;
+            user-select: none;
         }
         
         .popup {
@@ -528,16 +545,16 @@
             // Проверяем наличие данных для этой области
             if (parsedData && Array.isArray(parsedData)) {
                 const filteredData = filterDataByObject(
-                    parsedData, 
-                    areaConfig.matchField || 'причал', 
+                    parsedData,
+                    areaConfig.matchField || 'причал',
                     areaConfig.matchValue || areaConfig.name
                 );
-                
+
                 // Если есть данные, создаем иконки судов
                 if (filteredData.length > 0) {
                     const iconsContainer = document.createElement('div');
                     iconsContainer.className = 'ship-icons-container';
-                    
+
                     // Создаем иконку для каждой записи
                     let iconSrc = 'ship.png'; // значение по умолчанию
                     if (typeof iconImagePath !== 'undefined' && iconImagePath) {
@@ -548,57 +565,72 @@
                             iconSrc = normalizePath(iconImagePath);
                         }
                     }
-                    
+
                     for (let i = 0; i < filteredData.length; i++) {
+                        const shipData = filteredData[i];
+                        const shipItem = document.createElement('div');
+                        shipItem.className = 'ship-item';
+
+                        const shipLabel = document.createElement('div');
+                        shipLabel.className = 'ship-label';
+                        shipLabel.textContent = shipData.судно || 'Судно';
+                        shipItem.appendChild(shipLabel);
+
                         const shipIcon = document.createElement('img');
                         shipIcon.className = 'ship-icon';
                         shipIcon.src = iconSrc;
-                        shipIcon.alt = 'Судно';
-                        iconsContainer.appendChild(shipIcon);
+                        shipIcon.alt = shipData.судно || 'Судно';
+
+                        shipIcon.addEventListener('mouseenter', function(e) {
+                            showPopup(e, areaConfig, shipData);
+                        });
+
+                        shipIcon.addEventListener('mousemove', function(e) {
+                            updatePopupPosition(e);
+                        });
+
+                        shipIcon.addEventListener('mouseleave', function() {
+                            closePopup();
+                        });
+
+                        shipItem.appendChild(shipIcon);
+                        iconsContainer.appendChild(shipItem);
                     }
-                    
+
                     area.appendChild(iconsContainer);
                 }
             }
-            
-            area.addEventListener('mouseenter', function(e) {
-                showPopup(e, areaConfig);
-            });
-            
-            area.addEventListener('mousemove', function(e) {
-                updatePopupPosition(e);
-            });
-            
-            area.addEventListener('mouseleave', function() {
-                closePopup();
-            });
             
             return area;
         }
     
         // Функция для отображения всплывающего окна
-        function showPopup(event, areaConfig) {
+        function showPopup(event, areaConfig, shipData = null) {
             const popup = document.getElementById('popup');
             const popupHeader = document.getElementById('popup-header');
             const popupContent = document.getElementById('popup-content');
-            
-            if (!parsedData || !Array.isArray(parsedData)) {
-                popupHeader.textContent = areaConfig.name;
+
+            const hasDataArray = parsedData && Array.isArray(parsedData);
+
+            if (!hasDataArray) {
+                popupHeader.textContent = shipData?.судно || areaConfig.name;
                 popupContent.innerHTML = '<div class="popup-no-data">Нет данных для отображения</div>';
             } else {
-                const filteredData = filterDataByObject(
-                    parsedData, 
-                    areaConfig.matchField || 'причал', 
-                    areaConfig.matchValue || areaConfig.name
-                );
-                
-                popupHeader.textContent = areaConfig.name;
-                
+                const filteredData = shipData
+                    ? [shipData]
+                    : filterDataByObject(
+                        parsedData,
+                        areaConfig.matchField || 'причал',
+                        areaConfig.matchValue || areaConfig.name
+                    );
+
+                popupHeader.textContent = shipData?.судно || areaConfig.name;
+
                 if (filteredData.length === 0) {
                     popupContent.innerHTML = '<div class="popup-no-data">Нет данных для этого объекта</div>';
                 } else {
                     let contentHTML = '';
-                    filteredData.forEach((item, index) => {
+                    filteredData.forEach((item) => {
                         contentHTML += `
                             <div class="popup-item">
                                 <div class="popup-item-title">Судно: ${item.судно}</div>
@@ -614,7 +646,7 @@
                     popupContent.innerHTML = contentHTML;
                 }
             }
-            
+
             popup.classList.add('visible');
             updatePopupPosition(event);
         }
