@@ -19,6 +19,26 @@
             background-color: #e0e0e0;
         }
         
+        .no-data-label {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #616161;
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+            z-index: 100;
+            display: none;
+        }
+        
+        .no-data-label.visible {
+            display: block;
+        }
+        
         .map-container {
             width: 100%;
             min-height: 100vh;
@@ -54,11 +74,6 @@
             transition: border-color 0.3s ease, background-color 0.3s ease;
             z-index: 10;
         }
-/*         .interactive-area:hover {
-            border-color: #4CAF50;
-            background-color: rgba(102, 255, 102, 0.5);
-        } */
-        
         .ship-icons-container {
             position: absolute;
             top: 50%;
@@ -87,6 +102,17 @@
             filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(100%) contrast(100%);
             cursor: pointer;
             pointer-events: auto;
+        }
+        
+        .ship-icon.lighter {
+            filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(100%) contrast(100%);
+            opacity: 0.6;
+        }
+        
+        .ship-icon-wrapper.offset {
+            position: relative;
+            top: -30px;
+            margin-left: -15px;
         }
         
         .ship-label {
@@ -165,8 +191,8 @@
         }
         
         .popup-item-detail strong {
-            color: #424242;
-            font-weight: 500;
+            color: #616161;
+            font-weight: bold;
         }
         
         .popup-no-data {
@@ -198,6 +224,8 @@
             </div>
         </div>
     </div>
+    
+    <div id="no-data-label" class="no-data-label">Данные по причалам и судам за указанный период отсутствуют</div>
     
     <div id="popup" class="popup">
         <div class="popup-header" id="popup-header"></div>
@@ -590,23 +618,32 @@
                     }
                     
                     for (let i = 0; i < filteredData.length; i++) {
+                        // Сохраняем данные судна для этой иконки
+                        const shipData = filteredData[i];
+                        
+                        // Проверяем наличие швартовки вторым бортом или кормой
+                        const hasSecondSide = shipData.швартовка_вторым_бортом && 
+                                            (String(shipData.швартовка_вторым_бортом).toLowerCase() === 'да' || 
+                                             shipData.швартовка_вторым_бортом === true);
+                        const hasStern = shipData.швартовка_кормой && 
+                                        (String(shipData.швартовка_кормой).toLowerCase() === 'да' || 
+                                         shipData.швартовка_кормой === true);
+                        const needsOffset = hasSecondSide || hasStern;
+                        
                         // Создаем обертку для иконки и label
                         const shipIconWrapper = document.createElement('div');
-                        shipIconWrapper.className = 'ship-icon-wrapper';
+                        shipIconWrapper.className = 'ship-icon-wrapper' + (needsOffset ? ' offset' : '');
                         
                         // Создаем label с названием судна
                         const shipLabel = document.createElement('div');
                         shipLabel.className = 'ship-label';
-                        shipLabel.textContent = filteredData[i].судно || 'Судно';
+                        shipLabel.textContent = shipData.судно || 'Судно';
                         
                         // Создаем иконку
                         const shipIcon = document.createElement('img');
-                        shipIcon.className = 'ship-icon';
+                        shipIcon.className = 'ship-icon' + (needsOffset ? ' lighter' : '');
                         shipIcon.src = iconSrc;
                         shipIcon.alt = 'Судно';
-                        
-                        // Сохраняем данные судна для этой иконки
-                        const shipData = filteredData[i];
                         
                         // Добавляем обработчики событий на обертку (и иконку, и label)
                         shipIconWrapper.addEventListener('mouseenter', function(e) {
@@ -651,11 +688,12 @@
             
             let contentHTML = `
                 <div class="popup-item">
-                    <div class="popup-item-title">Судно: ${shipData.судно || 'Не указано'}</div>
-                    ${shipData.причал ? `<div class="popup-item-detail"><strong>Причал:</strong> ${shipData.причал}</div>` : ''}
+                    <div class="popup-item-title">${shipData.судно || 'Не указано'}</div>
                     ${shipData.вид_подхода ? `<div class="popup-item-detail"><strong>Вид подхода:</strong> ${shipData.вид_подхода}</div>` : ''}
                     ${shipData.дата_швартовки ? `<div class="popup-item-detail"><strong>Дата швартовки:</strong> ${formatDateTime(shipData.дата_швартовки)}</div>` : ''}
                     ${shipData.дата_выбытия ? `<div class="popup-item-detail"><strong>Дата выбытия:</strong> ${formatDateTime(shipData.дата_выбытия)}</div>` : ''}
+                    ${shipData.швартовка_вторым_бортом ? `<div class="popup-item-detail"><strong>Швартовка вторым бортом:</strong> ${shipData.швартовка_вторым_бортом}</div>` : ''}
+                    ${shipData.швартовка_кормой ? `<div class="popup-item-detail"><strong>Швартовка кормой:</strong> ${shipData.швартовка_кормой}</div>` : ''}
                 </div>
             `;
             popupContent.innerHTML = contentHTML;
@@ -798,15 +836,27 @@
             loadInteractiveAreas();
             
             // Парсим данные
-            if (externalData) {
+            if (externalData && externalData !== "scriptData") {
                 if (typeof externalData === 'string') {
                     try {
                         parsedData = parseDataString(externalData);
                     } catch (error) {
                         console.error(error.message);
                     }
-                } else if (Array.isArray(externalData)) {
+                } else if (Array.isArray(externalData) && externalData.length > 0) {
                     parsedData = externalData;
+                }
+            }
+            
+            // Проверяем наличие данных и показываем сообщение, если данных нет
+            const noDataLabel = document.getElementById('no-data-label');
+            if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) {
+                if (noDataLabel) {
+                    noDataLabel.classList.add('visible');
+                }
+            } else {
+                if (noDataLabel) {
+                    noDataLabel.classList.remove('visible');
                 }
             }
             
