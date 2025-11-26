@@ -21,14 +21,14 @@
         
         .no-data-label {
             position: fixed;
-            top: 20px;
+            top: 30px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: #616161;
+            background-color: #6161618c;
             color: #ffffff;
             padding: 8px 16px;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
             z-index: 100;
@@ -36,6 +36,25 @@
         }
         
         .no-data-label.visible {
+            display: block;
+        }
+        
+        .location-type-label {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            background-color: #6161618c;
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+            z-index: 100;
+            display: none;
+        }
+        
+        .location-type-label.visible {
             display: block;
         }
         
@@ -226,6 +245,8 @@
     </div>
     
     <div id="no-data-label" class="no-data-label">Данные по причалам и судам за указанный период отсутствуют</div>
+    
+    <div id="location-type-label" class="location-type-label"></div>
     
     <div id="popup" class="popup">
         <div class="popup-header" id="popup-header"></div>
@@ -858,6 +879,34 @@
             } else {
                 if (noDataLabel) {
                     noDataLabel.classList.remove('visible');
+                }
+                
+                // Проверяем тип расположения (Фактический или Плановый)
+                const locationTypeLabel = document.getElementById('location-type-label');
+                let hasFactual = false;
+                let hasPlanned = false;
+                
+                parsedData.forEach(ship => {
+                    if (ship.вид_подхода) {
+                        const approachType = String(ship.вид_подхода).trim();
+                        if (approachType === 'Фактический') {
+                            hasFactual = true;
+                        } else if (approachType === 'Плановый') {
+                            hasPlanned = true;
+                        }
+                    }
+                });
+                
+                if (locationTypeLabel) {
+                    if (hasFactual) {
+                        locationTypeLabel.textContent = 'Факт';
+                        locationTypeLabel.classList.add('visible');
+                    } else if (hasPlanned) {
+                        locationTypeLabel.textContent = 'План';
+                        locationTypeLabel.classList.add('visible');
+                    } else {
+                        locationTypeLabel.classList.remove('visible');
+                    }
                 }
             }
             
