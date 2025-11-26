@@ -694,6 +694,7 @@
                     ${shipData.дата_выбытия ? `<div class="popup-item-detail"><strong>Дата выбытия:</strong> ${formatDateTime(shipData.дата_выбытия)}</div>` : ''}
                     ${shipData.швартовка_вторым_бортом ? `<div class="popup-item-detail"><strong>Швартовка вторым бортом:</strong> ${shipData.швартовка_вторым_бортом}</div>` : ''}
                     ${shipData.швартовка_кормой ? `<div class="popup-item-detail"><strong>Швартовка кормой:</strong> ${shipData.швартовка_кормой}</div>` : ''}
+                    ${shipData.судно_телефон ? `<div class="popup-item-detail"><strong>Телефон:</strong> ${shipData.судно_телефон}</div>` : ''}
                 </div>
             `;
             popupContent.innerHTML = contentHTML;
