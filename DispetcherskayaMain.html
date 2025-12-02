@@ -99,7 +99,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             display: flex;
-            align-items: center;
+            align-items: flex-end;
             justify-content: center;
             gap: 8px;
             pointer-events: none;
@@ -151,7 +151,7 @@
         }
         
         .ship-label.diagonal {
-            transform: rotate(-30deg);
+            transform: rotate(-38deg);
             transform-origin: center;
         }
         
@@ -266,7 +266,7 @@
         let interactiveAreasContainer = null;
         let mapReady = false;
         let areasReady = false;
-    
+
         const interactiveAreaSchema = {
             required: ['name', 'x', 'y', 'width', 'height', 'matchField'],
             propertyTypes: {
@@ -280,52 +280,45 @@
             }
         };
         
-        // Функция для нормализации путей Windows (конвертация обратных слешей в прямые)
         function normalizePath(path) {
             if (!path || typeof path !== 'string') {
                 return path;
             }
-            // Заменяем обратные слеши на прямые
             return path.replace(/\\/g, '/');
         }
         
-        // Функция для конвертации абсолютного пути Windows в file:// URL
         function convertToFileUrl(path) {
             if (!path || typeof path !== 'string') {
                 return path;
             }
-            // Если путь уже является URL, возвращаем как есть
             if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('file://')) {
                 return path;
             }
-            // Если это абсолютный путь Windows (начинается с буквы диска)
             if (/^[A-Za-z]:/.test(path)) {
                 const normalized = normalizePath(path);
                 return 'file:///' + normalized;
             }
-            // Иначе возвращаем нормализованный путь
             return normalizePath(path);
         }
         
-        // Функция для парсинга строки данных в массив объектов
         function parseDataString(dataString) {
             if (!dataString || typeof dataString !== 'string') {
                 return null;
             }
-    
+
             try {
                 const trimmedString = dataString.trim();
-    
+
                 if (!trimmedString) {
                     return null;
                 }
-    
+
                 const parsed = JSON.parse(trimmedString);
-    
+
                 if (!Array.isArray(parsed)) {
                     throw new Error('Ожидается массив объектов с данными для карты.');
                 }
-    
+
                 return parsed;
             } catch (error) {
                 const message = `Не удалось распарсить строку данных: ${error.message}`;
@@ -334,7 +327,6 @@
             }
         }
     
-        // Функция для преобразования даты из формата "dd.mm.yyyy hh:mm:ss" в Date
         function parseDateTime(dateTimeString) {
             if (!dateTimeString) return null;
             
@@ -351,17 +343,14 @@
             return new Date(dateTimeString);
         }
     
-        // Функция для форматирования даты и времени
         function formatDateTime(dateTimeString) {
             if (!dateTimeString) return '';
             
-            // Убираем кавычки из исходной строки
             const cleanedString = String(dateTimeString).replace(/"/g, '');
             
             const date = parseDateTime(cleanedString);
             if (!date || isNaN(date.getTime())) return cleanedString;
             
-            // Форматируем вручную в формате dd.mm.yyyy hh:mm:ss
             const day = String(date.getDate()).padStart(2, '0');
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const year = date.getFullYear();
@@ -392,45 +381,32 @@
             });
         }
     
-        // Функция для парсинга данных
         function parseManualDataString(rawString) {
             if (!rawString || typeof rawString !== 'string') return [];
             try {
-                // Шаг 1: заставим строку выглядеть как массив объектов JSON
                 let fixed = rawString
                     .replace(/^\s*{/, '[{').replace(/}\s*$/, '}]')
                     .replace(/},\s*{/g, '},{')
-                    // кавычки вокруг ключей
                     .replace(/([{\s,])([А-яA-zЁё№_\w]+):/g, '$1"$2":');
                 
-                // Шаг 2: обрабатываем значения, правильно обрабатывая кавычки внутри значений
-                // Используем более надежный подход с пошаговым парсингом
                 let processed = '';
                 let i = 0;
                 
                 while (i < fixed.length) {
-                    // Ищем паттерн "ключ":
                     const keyMatch = fixed.substring(i).match(/^"([^"]+)":\s*/);
                     if (keyMatch) {
                         const key = keyMatch[1];
-                        i += keyMatch[0].length; // Перемещаемся после ключа
+                        i += keyMatch[0].length;
                         
-                        // Находим значение до следующей запятой или закрывающей скобки
-                        // Учитываем, что значение может содержать кавычки
                         let valueStart = i;
                         let valueEnd = i;
                         let foundEnd = false;
                         
-                        // Ищем конец значения - до запятой или закрывающей скобки
-                        // Пропускаем пробелы в начале
                         while (i < fixed.length && (fixed[i] === ' ' || fixed[i] === '\t')) {
                             i++;
                         }
                         valueStart = i;
                         
-                        // Ищем конец значения, учитывая кавычки внутри значения
-                        // Если значение начинается с кавычки, ищем закрывающую кавычку
-                        // Иначе ищем запятую или }, но пропускаем кавычки внутри значения
                         let insideQuotes = false;
                         let quoteStart = -1;
                         
@@ -438,29 +414,24 @@
                             const char = fixed[j];
                             const prevChar = j > 0 ? fixed[j - 1] : '';
                             
-                            // Обрабатываем кавычки (учитываем экранированные)
                             if (char === '"' && prevChar !== '\\') {
                                 if (!insideQuotes) {
-                                    // Начало значения в кавычках
                                     insideQuotes = true;
                                     quoteStart = j;
                                 } else {
-                                    // Конец значения в кавычках
                                     insideQuotes = false;
-                                    // Проверяем, что после кавычки идет запятая, } или пробел+запятая/}
                                     let k = j + 1;
                                     while (k < fixed.length && (fixed[k] === ' ' || fixed[k] === '\t')) {
                                         k++;
                                     }
                                     if (k >= fixed.length || fixed[k] === ',' || fixed[k] === '}') {
-                                        valueEnd = j + 1; // Включаем закрывающую кавычку
+                                        valueEnd = j + 1;
                                         foundEnd = true;
                                         break;
                                     }
                                 }
                             }
                             
-                            // Если не внутри кавычек, ищем запятую или закрывающую скобку
                             if (!insideQuotes) {
                                 if (char === ',' || char === '}') {
                                     valueEnd = j;
@@ -476,28 +447,21 @@
                         
                         let value = fixed.substring(valueStart, valueEnd).trim();
                         
-                        // Обрабатываем значение
                         processed += `"${key}":`;
                         
-                        // если уже в кавычках — оставляем
                         if (/^".*"$/.test(value)) {
                             processed += value;
                         }
-                        // число (в том числе десятичные) — не экранируем
                         else if (/^-?\d+([.,]\d+)?$/.test(value.replace(',', '.'))) {
                             processed += value;
                         }
-                        // иначе — строка: экранируем обратные слеши, затем кавычки, затем оборачиваем в кавычки
                         else {
-                            // Экранируем обратные слеши, затем кавычки
-                            // Это позволяет правильно обрабатывать значения типа: баржа "УДА"
                             value = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
                             processed += `"${value}"`;
                         }
                         
                         i = valueEnd;
                     } else {
-                        // Просто копируем символ
                         processed += fixed[i];
                         i++;
                     }
@@ -514,40 +478,19 @@
             }
         }
     
-        // Функция для парсинга данных интерактивных областей
-        function parseInteractiveAreasString(rawString) {
-            if (!rawString || typeof rawString !== 'string') {
+        function parseInteractiveAreasString(jsonString) {
+            try {
+                const arr = JSON.parse(jsonString);
+                if (!Array.isArray(arr)) {
+                throw new Error('Некорректный формат: не массив!');
+                }
+                return arr;
+            } catch (e) {
+                console.error('Ошибка парсинга interactiveAreas:', e);
                 return [];
             }
-            try {
-                // 1. Преобразуем в более «json-подобный» формат:
-                let fixed = rawString
-                // Добавим квадратные скобки в начале/конце если их нет
-                .replace(/^\s*{/, '[{').replace(/}\s*$/, '}]')
-                // заменяем },{ на "},{"
-                .replace(/},\s*{/g, '},{')
-                // добавим кавычки вокруг ключей (грубый способ, но работает для латиницы/кириллицы и чисел)
-                .replace(/([{\s,])(\w+):/g, '$1"$2":')
-                // добавим кавычки вокруг значений-строк (по ключам, для русских)
-                .replace(/:\s*([А-яA-zЁё№\d\s\\/-]+)([,\}])/g, function(match, p1, p2) {
-                    // если уже есть кавычки — пропустим
-                    if(/^".*"$/.test(p1.trim())) return ':' + p1 + p2;
-                    // если число — пропустим
-                    if(/^\d+([\.,]\d+)?$/.test(p1.trim())) return ':' + p1 + p2;
-                    return ':"' + p1.trim().replace(/"/g, '\\"') + '"' + p2;
-                });
-    
-                const parsed = JSON.parse(fixed);
-                validateInteractiveAreasData(parsed);
-                return parsed;
-            } catch (error) {
-                const message = `Не удалось распарсить файл интерактивных областей: ${error.message}`;
-                console.error(message);
-                throw new Error(message);
-            }
         }
-    
-        // Функция для фильтрации данных по объекту
+            
         function filterDataByObject(dataArray, matchField, matchValue) {
             if (!dataArray || !Array.isArray(dataArray)) {
                 return [];
@@ -556,10 +499,10 @@
             return dataArray.filter(item => {
                 const fieldValue = item[matchField];
                 if (!fieldValue) return false;
-
+    
                 const fieldStr = String(fieldValue).trim().toLowerCase();
                 const matchStr = String(matchValue).trim().toLowerCase();
-
+    
                 return fieldStr === matchStr;
             });
         }
@@ -606,7 +549,6 @@
             return { isValid: errors.length === 0, errors };
         }
     
-        // Функция для создания интерактивной области
         function createInteractiveArea(areaConfig, scaleX, scaleY) {
             const area = document.createElement('div');
             area.className = 'interactive-area';
@@ -620,7 +562,6 @@
             area.style.width = (width * scaleX) + 'px';
             area.style.height = (height * scaleY) + 'px';
             
-            // Проверяем наличие данных для этой области
             if (parsedData && Array.isArray(parsedData)) {
                 const filteredData = filterDataByObject(
                     parsedData, 
@@ -628,12 +569,10 @@
                     areaConfig.matchValue || areaConfig.name
                 );
                 
-                // Если есть данные, создаем иконки судов
                 if (filteredData.length > 0) {
                     const iconsContainer = document.createElement('div');
                     iconsContainer.className = 'ship-icons-container';
                     
-                    // Функция для получения пути к иконке
                     function getIconPath(basePath) {
                         if (!basePath) return 'side_ship.png';
                         if (/^[A-Za-z]:/.test(basePath) && window.location.protocol === 'file:') {
@@ -642,7 +581,6 @@
                         return normalizePath(basePath);
                     }
                     
-                    // Базовые пути к иконкам
                     const defaultSideIcon = 'side_ship.png';
                     const defaultSternIcon = 'stern_ship.png';
                     const sideIconSrc = (typeof iconImagePath !== 'undefined' && iconImagePath) 
@@ -653,10 +591,8 @@
                         : defaultSternIcon;
                     
                     for (let i = 0; i < filteredData.length; i++) {
-                        // Сохраняем данные судна для этой иконки
                         const shipData = filteredData[i];
                         
-                        // Проверяем наличие швартовки вторым бортом или кормой
                         const hasSecondSide = shipData.швартовка_вторым_бортом && 
                                             (String(shipData.швартовка_вторым_бортом).toLowerCase() === 'да' || 
                                              shipData.швартовка_вторым_бортом === true);
@@ -665,25 +601,20 @@
                                          shipData.швартовка_кормой === true);
                         const needsOffset = hasSecondSide || hasStern;
                         
-                        // Выбираем иконку в зависимости от швартовки кормой
                         const currentIconSrc = hasStern ? sternIconSrc : sideIconSrc;
                         
-                        // Создаем обертку для иконки и label
                         const shipIconWrapper = document.createElement('div');
                         shipIconWrapper.className = 'ship-icon-wrapper' + (needsOffset ? ' offset' : '');
                         
-                        // Создаем label с названием судна
                         const shipLabel = document.createElement('div');
                         shipLabel.className = 'ship-label' + (needsOffset ? ' diagonal' : '');
                         shipLabel.textContent = shipData.судно || 'Судно';
                         
-                        // Создаем иконку (светлее только если швартовка вторым бортом)
                         const shipIcon = document.createElement('img');
                         shipIcon.className = 'ship-icon' + (hasSecondSide ? ' lighter' : '');
                         shipIcon.src = currentIconSrc;
                         shipIcon.alt = 'Судно';
                         
-                        // Добавляем обработчики событий на обертку (и иконку, и label)
                         shipIconWrapper.addEventListener('mouseenter', function(e) {
                             showPopup(e, shipData, areaConfig);
                         });
@@ -696,7 +627,6 @@
                             closePopup();
                         });
                         
-                        // Добавляем label и иконку в обертку
                         shipIconWrapper.appendChild(shipLabel);
                         shipIconWrapper.appendChild(shipIcon);
                         
@@ -710,18 +640,15 @@
             return area;
         }
     
-        // Функция для отображения всплывающего окна
         function showPopup(event, shipData, areaConfig) {
             const popup = document.getElementById('popup');
             const popupHeader = document.getElementById('popup-header');
             const popupContent = document.getElementById('popup-content');
             
-            // Проверяем наличие данных судна
             if (!shipData) {
                 return;
             }
             
-            // Показываем попап с информацией по одному судну
             popupHeader.textContent = areaConfig ? areaConfig.name : '';
             
             let contentHTML = `
@@ -741,7 +668,6 @@
             updatePopupPosition(event);
         }
     
-        // Функция для обновления позиции всплывающего окна
         function updatePopupPosition(event) {
             const popup = document.getElementById('popup');
             const popupRect = popup.getBoundingClientRect();
@@ -751,7 +677,6 @@
             let left = event.clientX + 15;
             let top = event.clientY + 15;
             
-            // Корректировка позиции, чтобы попап не выходил за границы экрана
             if (left + popupRect.width > viewportWidth) {
                 left = event.clientX - popupRect.width - 15;
             }
@@ -763,13 +688,11 @@
             popup.style.top = top + 'px';
         }
     
-        // Функция для закрытия всплывающего окна
         function closePopup() {
             const popup = document.getElementById('popup');
             popup.classList.remove('visible');
         }
     
-        // Функция для рендеринга интерактивных областей с учетом масштаба
         function renderInteractiveAreas() {
             if (!mapReady || !areasReady || !mapImage || !interactiveAreasContainer) {
                 return;
@@ -816,18 +739,7 @@
                 return;
             }
             
-            // Нормализуем путь (конвертируем обратные слеши в прямые)
-            // Для локальных файлов через file:// используем относительный путь или file:// URL
             let imageSrc = mapImagePath;
-            
-            // Если это абсолютный путь Windows и файл открыт через file://, конвертируем в file:// URL
-            if (/^[A-Za-z]:/.test(mapImagePath) && window.location.protocol === 'file:') {
-                imageSrc = convertToFileUrl(mapImagePath);
-            } else {
-                // Иначе просто нормализуем путь
-                imageSrc = normalizePath(mapImagePath);
-            }
-            
             mapImage.src = imageSrc;
             
             if (mapImage.complete && mapImage.naturalWidth) {
@@ -860,14 +772,29 @@
                 return;
             }
         }
+
         // Определение данных
         const externalData = parseManualDataString("scriptData");
-        const interactiveAreasData =  parseInteractiveAreasString("areasData");
-        const mapImagePath = "C:/Отладка/_Dispetcherskaya/yard_map.jpg";
-        const iconImagePath = "C:/Отладка/_Dispetcherskaya/side_ship.png";
-        const sternIconImagePath = "C:/Отладка/_Dispetcherskaya/stern_ship.png";
-    
-        // Инициализация при загрузке страницы
+        const mapImagePath = "http://100.122.122.7/dispetcherskaya/v1/yard_map.jpg";
+        const iconImagePath = "http://100.122.122.7/dispetcherskaya/v1/side_ship.png";
+        const sternIconImagePath = "http://100.122.122.7/dispetcherskaya/v1/stern_ship.png";
+        const interactiveAreasDataPath = "http://100.122.122.7/dispetcherskaya/v1/interactiveAreas.json";
+
+        let interactiveAreasData = null;
+        fetch(interactiveAreasDataPath)
+            .then(response => {
+                if (!response.ok) throw new Error('Ошибка загрузки файла');
+                return response.text();
+            })
+            .then(dataStr => {
+                interactiveAreasData = parseInteractiveAreasString(dataStr);
+                areasReady = true;
+                loadInteractiveAreas();
+            })
+            .catch(error => {
+                console.error('Ошибка получения данных:', error);
+            });
+
         document.addEventListener('DOMContentLoaded', function() {
             mapImage = document.getElementById('map-image');
             interactiveAreasContainer = document.getElementById('interactive-areas');
@@ -875,7 +802,6 @@
             loadMapImage();
             loadInteractiveAreas();
             
-            // Парсим данные
             if (externalData && externalData !== "scriptData") {
                 if (typeof externalData === 'string') {
                     try {
@@ -888,7 +814,6 @@
                 }
             }
             
-            // Проверяем наличие данных и показываем сообщение, если данных нет
             const noDataLabel = document.getElementById('no-data-label');
             if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) {
                 if (noDataLabel) {
@@ -899,7 +824,6 @@
                     noDataLabel.classList.remove('visible');
                 }
                 
-                // Проверяем тип расположения (Фактический или Плановый)
                 const locationTypeLabel = document.getElementById('location-type-label');
                 let hasFactual = false;
                 let hasPlanned = false;
@@ -928,12 +852,10 @@
                 }
             }
             
-            // Перерисовываем области после загрузки данных, чтобы отобразить иконки
             if (mapReady && areasReady) {
                 renderInteractiveAreas();
             }
             
-            // Закрытие попапа при клике вне его
             document.addEventListener('click', function(e) {
                 const popup = document.getElementById('popup');
                 if (!popup.contains(e.target) && 
