@@ -1,897 +1,905 @@
-<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"></meta><meta name="viewport" content="width=device-width, initial-scale=1.0"></meta><title>Диспетчерская - План завода</title><style>
-    * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Диспетчерская - План завода</title>
+    <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: Arial, sans-serif;
+                background-color: #f5f5f5;
+                overflow: auto;
+            }
+            
+            .container {
+                width: 100%;
+                height: 100vh;
+                position: relative;
+                overflow: auto;
+                background-color: #e0e0e0;
+            }
+            
+            .no-data-label {
+                position: fixed;
+                top: 30px;
+                left: 50%;
+                transform: translateX(-50%);
+                background-color: #6161618c;
+                color: #ffffff;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-size: 13px;
+                font-weight: 500;
+                box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+                z-index: 100;
+                display: none;
+            }
+            
+            .no-data-label.visible {
+                display: block;
+            }
+            
+            .location-type-label {
+                position: fixed;
+                top: 30px;
+                left: 30px;
+                background-color: #6161618c;
+                color: #ffffff;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-size: 13px;
+                font-weight: 500;
+                z-index: 100;
+                display: none;
+            }
+            
+            .location-type-label.visible {
+                display: block;
+            }
+            
+            .map-container {
+                width: 100%;
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+                padding: 20px;
+            }
+            
+            .map-stage {
+                position: relative;
+                display: inline-block;
+            }
+            
+            .map-image {
+                max-width: 100%;
+                height: auto;
+                display: block;
+            }
+            
+            #interactive-areas {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+            }
+            
+            .interactive-area {
+                position: absolute;
+                cursor: pointer;
+                border: 2px solid transparent;
+                transition: border-color 0.3s ease, background-color 0.3s ease;
+                z-index: 10;
+            }
+    
+            .ship-icons-container {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+                gap: 8px;
+                pointer-events: none;
+                z-index: 11;
+            }
+            
+            .ship-icon-wrapper {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 4px;
+                pointer-events: auto;
+            }
+            
+            .ship-icon {
+                width: 30px;
+                height: 30px;
+                object-fit: contain;
+                filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(100%) contrast(100%);
+                cursor: pointer;
+                pointer-events: auto;
+            }
+            
+            .ship-icon.lighter {
+                filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(100%) contrast(100%);
+                opacity: 0.6;
+            }
+            
+            .ship-icon-wrapper.offset {
+                position: relative;
+                top: -25px;
+                margin-left: -10px;
+                margin-right: -10px;
+            }
+            
+            .ship-label {
+                background-color: #616161;
+                color: #ffffff;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 500;
+                white-space: nowrap;
+                box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+                pointer-events: none;
+                max-width: 120px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            .ship-label.diagonal {
+                transform: rotate(-38deg);
+                transform-origin: center;
+            }
+            
+            .popup {
+                position: fixed;
+                background-color: #f5f5f5;
+                border: none;
+                border-radius: 4px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                padding: 0;
+                min-width: 250px;
+                max-width: 400px;
+                max-height: 80vh;
+                overflow-y: auto;
+                z-index: 1000;
+                display: none;
+                font-size: 12px;
+            }
+            
+            .popup.visible {
+                display: block;
+            }
+            
+            .popup-header {
+                font-weight: 600;
+                font-size: 13px;
+                color: #424242;
+                margin: 0;
+                padding: 8px 12px;
+                background-color: #e0e0e0;
+                border-bottom: 1px solid #bdbdbd;
+            }
+            
+            .popup-content {
+                margin: 0;
+                padding: 0;
+                background-color: #fafafa;
+            }
+            
+            .popup-item {
+                padding: 8px 12px;
+                border-bottom: 1px solid #e0e0e0;
+                background-color: #ffffff;
+            }
+            
+            .popup-item:last-child {
+                border-bottom: none;
+            }
+            
+            .popup-item-title {
+                font-weight: 600;
+                color: #424242;
+                margin-bottom: 4px;
+                font-size: 12px;
+            }
+            
+            .popup-item-detail {
+                color: #616161;
+                font-size: 11px;
+                margin-left: 0;
+                margin-top: 3px;
+            }
+            
+            .popup-item-detail strong {
+                color: #616161;
+                font-weight: bold;
+            }
+            
+            .popup-no-data {
+                color: #9e9e9e;
+                font-style: italic;
+                text-align: center;
+                padding: 20px;
+                background-color: #fafafa;
+            }
+            
+            .popup-close {
+                position: absolute;
+                top: 8px;
+                right: 12px;
+                cursor: pointer;
+                font-size: 20px;
+                color: #757575;
+                line-height: 1;
+            }
+            
+            .popup-close:hover {
+                color: #424242;
+            }
+        </style><base href="v8config://35eba4d5-55c8-40f1-b0ad-e5a1d860ca2f/mdobject/id3ad52b03-5997-4be8-a38f-b446b3133373/8eb4fad1-1fa6-403e-970f-2c12dbb43e23"></head>
+    <body>
         
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
-            overflow: auto;
-        }
-        
-        .container {
-            width: 100%;
-            height: 100vh;
-            position: relative;
-            overflow: auto;
-            background-color: #e0e0e0;
-        }
-        
-        .no-data-label {
-            position: fixed;
-            top: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #6161618c;
-            color: #ffffff;
-            padding: 8px 16px;
-            border-radius: 4px;
-            font-size: 13px;
-            font-weight: 500;
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
-            z-index: 100;
-            display: none;
-        }
-        
-        .no-data-label.visible {
-            display: block;
-        }
-        
-        .location-type-label {
-            position: fixed;
-            top: 30px;
-            left: 30px;
-            background-color: #6161618c;
-            color: #ffffff;
-            padding: 8px 16px;
-            border-radius: 4px;
-            font-size: 13px;
-            font-weight: 500;
-            /* box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35); */
-            z-index: 100;
-            display: none;
-        }
-        
-        .location-type-label.visible {
-            display: block;
-        }
-        
-        .map-container {
-            width: 100%;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 20px;
-        }
-        
-        .map-stage {
-            position: relative;
-            display: inline-block;
-        }
-        
-        .map-image {
-            max-width: 100%;
-            height: auto;
-            display: block;
-        }
-        
-        #interactive-areas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-        
-        .interactive-area {
-            position: absolute;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: border-color 0.3s ease, background-color 0.3s ease;
-            z-index: 10;
-        }
-        .ship-icons-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            pointer-events: none;
-            z-index: 11;
-        }
-        
-        .ship-icon-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            pointer-events: auto;
-        }
-        
-        .ship-icon {
-            width: 30px;
-            height: 30px;
-            object-fit: contain;
-            filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(100%) contrast(100%);
-            cursor: pointer;
-            pointer-events: auto;
-        }
-        
-        .ship-icon.lighter {
-            filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(100%) contrast(100%);
-            opacity: 0.6;
-        }
-        
-        .ship-icon-wrapper.offset {
-            position: relative;
-            top: -25px;
-            margin-left: -10px;
-            margin-right: -10px;
-        }
-        
-        .ship-label {
-            background-color: #616161;
-            color: #ffffff;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 500;
-            white-space: nowrap;
-            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
-            pointer-events: none;
-            max-width: 120px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .ship-label.diagonal {
-            transform: rotate(-38deg);
-            transform-origin: center;
-        }
-        
-        .popup {
-            position: fixed;
-            background-color: #f5f5f5;
-            border: none;
-            border-radius: 4px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            padding: 0;
-            min-width: 250px;
-            max-width: 400px;
-            max-height: 80vh;
-            overflow-y: auto;
-            z-index: 1000;
-            display: none;
-            font-size: 12px;
-        }
-        
-        .popup.visible {
-            display: block;
-        }
-        
-        .popup-header {
-            font-weight: 600;
-            font-size: 13px;
-            color: #424242;
-            margin: 0;
-            padding: 8px 12px;
-            background-color: #e0e0e0;
-            border-bottom: 1px solid #bdbdbd;
-        }
-        
-        .popup-content {
-            margin: 0;
-            padding: 0;
-            background-color: #fafafa;
-        }
-        
-        .popup-item {
-            padding: 8px 12px;
-            border-bottom: 1px solid #e0e0e0;
-            background-color: #ffffff;
-        }
-        
-        .popup-item:last-child {
-            border-bottom: none;
-        }
-        
-        .popup-item-title {
-            font-weight: 600;
-            color: #424242;
-            margin-bottom: 4px;
-            font-size: 12px;
-        }
-        
-        .popup-item-detail {
-            color: #616161;
-            font-size: 11px;
-            margin-left: 0;
-            margin-top: 3px;
-        }
-        
-        .popup-item-detail strong {
-            color: #616161;
-            font-weight: bold;
-        }
-        
-        .popup-no-data {
-            color: #9e9e9e;
-            font-style: italic;
-            text-align: center;
-            padding: 20px;
-            background-color: #fafafa;
-        }
-        
-        .popup-close {
-            position: absolute;
-            top: 8px;
-            right: 12px;
-            cursor: pointer;
-            font-size: 20px;
-            color: #757575;
-            line-height: 1;
-        }
-        
-        .popup-close:hover {
-            color: #424242;
-        }
-    </style></head><body>
     <div class="container">
-        <div class="map-container">
-            <div class="map-stage">
-                <img id="map-image" class="map-image" src="" alt="План завода"></img><div id="interactive-areas"></div>
+            
+    <div class="map-container">
+                
+    <div class="map-stage">
+                    <img id="map-image" class="map-image" src="" alt="План завода">
+    <div id="interactive-areas"></div>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <div id="no-data-label" class="no-data-label">Данные по причалам и судам за указанный период отсутствуют</div>
-    
+        
+        
+    <div id="no-data-label" class="no-data-label">
+            Данные по причалам и судам за указанный период отсутствуют
+        </div>
+        
+        
     <div id="location-type-label" class="location-type-label"></div>
-    
+        
+        
     <div id="popup" class="popup">
-        <div class="popup-header" id="popup-header"></div>
-        <div class="popup-content" id="popup-content"></div>
-    </div>
-    
+            
+    <div class="popup-header" id="popup-header"></div>
+            
+    <div class="popup-content" id="popup-content"></div>
+        </div>
+        
+        
     <script>
-        let parsedData = null;
-        let interactiveAreas = [];
-        let mapImage = null;
-        let interactiveAreasContainer = null;
-        let mapReady = false;
-        let areasReady = false;
+            let parsedData = null;
+            let interactiveAreas = [];
+            let interactiveAreasData = [];
+            let mapImage = null;
+            let interactiveAreasContainer = null;
+            let mapReady = false;
+            let areasReady = false;
     
-        const interactiveAreaSchema = {
-            required: ['name', 'x', 'y', 'width', 'height', 'matchField'],
-            propertyTypes: {
-                name: 'string',
-                x: 'number',
-                y: 'number',
-                width: 'number',
-                height: 'number',
-                matchField: 'string',
-                matchValue: 'string'
+            const interactiveAreaSchema = {
+                required: ['name', 'x', 'y', 'width', 'height', 'matchField'],
+                propertyTypes: {
+                    name: 'string',
+                    x: 'number',
+                    y: 'number',
+                    width: 'number',
+                    height: 'number',
+                    matchField: 'string',
+                    matchValue: 'string'
+                }
+            };
+            
+            function normalizePath(path) {
+                if (!path || typeof path !== 'string') {
+                    return path;
+                }
+                return path.replace(/\\/g, '/');
             }
-        };
-        
-        function normalizePath(path) {
-            if (!path || typeof path !== 'string') {
-                return path;
+            
+            function convertToFileUrl(path) {
+                if (!path || typeof path !== 'string') {
+                    return path;
+                }
+                if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('file://')) {
+                    return path;
+                }
+                if (/^[A-Za-z]:/.test(path)) {
+                    const normalized = normalizePath(path);
+                    return 'file:///' + normalized;
+                }
+                return normalizePath(path);
             }
-            return path.replace(/\\/g, '/');
-        }
-        
-        function convertToFileUrl(path) {
-            if (!path || typeof path !== 'string') {
-                return path;
-            }
-            // Если уже base64-строка, возвращаем как есть
-            if (path.startsWith('data:image/')) {
-                return path;
-            }
-            if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('file://')) {
-                return path;
-            }
-            if (/^[A-Za-z]:/.test(path)) {
-                const normalized = normalizePath(path);
-                return 'file:///' + normalized;
-            }
-            return normalizePath(path);
-        }
-        
-        function parseDataString(dataString) {
-            if (!dataString || typeof dataString !== 'string') {
-                return null;
-            }
-    
-            try {
-                const trimmedString = dataString.trim();
-    
-                if (!trimmedString) {
+            
+            function parseDataString(dataString) {
+                if (!dataString || typeof dataString !== 'string') {
                     return null;
                 }
     
-                const parsed = JSON.parse(trimmedString);
+                try {
+                    const trimmedString = dataString.trim();
     
-                if (!Array.isArray(parsed)) {
-                    throw new Error('Ожидается массив объектов с данными для карты.');
+                    if (!trimmedString) {
+                        return null;
+                    }
+    
+                    const parsed = JSON.parse(trimmedString);
+    
+                    if (!Array.isArray(parsed)) {
+                        throw new Error('Ожидается массив объектов с данными для карты.');
+                    }
+    
+                    return parsed;
+                } catch (error) {
+                    const message = 'Не удалось распарсить строку данных: ' + error.message;
+                    console.error(message);
+                    throw new Error(message);
                 }
-    
-                return parsed;
-            } catch (error) {
-                const message = `Не удалось распарсить строку данных: ${error.message}`;
-                console.error(message);
-                throw new Error(message);
             }
-        }
-    
-        function parseDateTime(dateTimeString) {
-            if (!dateTimeString) return null;
-            
-            if (dateTimeString.includes('-') || dateTimeString.includes('T')) {
+        
+            function parseDateTime(dateTimeString) {
+                if (!dateTimeString) return null;
+                
+                if (dateTimeString.includes('-') || dateTimeString.includes('T')) {
+                    return new Date(dateTimeString);
+                }
+                
+                const match = dateTimeString.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
+                if (match) {
+                    const [, day, month, year, hour, minute, second] = match;
+                    return new Date(year, month - 1, day, hour, minute, second);
+                }
+                
                 return new Date(dateTimeString);
             }
-            
-            const match = dateTimeString.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})/);
-            if (match) {
-                const [, day, month, year, hour, minute, second] = match;
-                return new Date(year, month - 1, day, hour, minute, second);
-            }
-            
-            return new Date(dateTimeString);
-        }
-    
-        function formatDateTime(dateTimeString) {
-            if (!dateTimeString) return '';
-            
-            // Убираем кавычки из исходной строки
-            const cleanedString = String(dateTimeString).replace(/"/g, '');
-            
-            const date = parseDateTime(cleanedString);
-            if (!date || isNaN(date.getTime())) return cleanedString;
-            
-            // Форматируем вручную в формате dd.mm.yyyy hh:mm:ss
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            const seconds = String(date.getSeconds()).padStart(2, '0');
-            
-            return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
-        }
-    
-        function validateInteractiveAreasData(data) {
-            if (!Array.isArray(data)) {
-                throw new Error('Интерактивные области должны быть массивом объектов.');
-            }
-    
-            data.forEach((area, index) => {
-                interactiveAreaSchema.required.forEach(field => {
-                    if (area[field] === undefined) {
-                        throw new Error(`Область №${index + 1} не содержит обязательное поле "${field}".`);
-                    }
-                });
-    
-                Object.entries(interactiveAreaSchema.propertyTypes).forEach(([field, type]) => {
-                    if (area[field] !== undefined && typeof area[field] !== type) {
-                        throw new Error(`Поле "${field}" в области №${index + 1} должно быть типа ${type}.`);
-                    }
-                });
-            });
-        }
-    
-        function parseManualDataString(rawString) {
-            if (!rawString || typeof rawString !== 'string') return [];
-            try {
-                let fixed = rawString
-                    .replace(/^\s*{/, '[{').replace(/}\s*$/, '}]')
-                    .replace(/},\s*{/g, '},{')
-                    .replace(/([{\s,])([А-яA-zЁё№_\w]+):/g, '$1"$2":');
+        
+            function formatDateTime(dateTimeString) {
+                if (!dateTimeString) return '';
                 
-                let processed = '';
-                let i = 0;
+                const cleanedString = String(dateTimeString).replace(/"/g, '');
                 
-                while (i < fixed.length) {
-                    const keyMatch = fixed.substring(i).match(/^"([^"]+)":\s*/);
-                    if (keyMatch) {
-                        const key = keyMatch[1];
-                        i += keyMatch[0].length;
-                        
-                        let valueStart = i;
-                        let valueEnd = i;
-                        let foundEnd = false;
-                        
-                        while (i < fixed.length && (fixed[i] === ' ' || fixed[i] === '\t')) {
-                            i++;
+                const date = parseDateTime(cleanedString);
+                if (!date || isNaN(date.getTime())) return cleanedString;
+                
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const seconds = String(date.getSeconds()).padStart(2, '0');
+                
+                return day + '.' + month + '.' + year + ' ' + hours + ':' + minutes + ':' + seconds;
+            }
+        
+            function validateInteractiveAreasData(data) {
+                if (!Array.isArray(data)) {
+                    throw new Error('Интерактивные области должны быть массивом объектов.');
+                }
+        
+                data.forEach((area, index) => {
+                    interactiveAreaSchema.required.forEach(field => {
+                        if (area[field] === undefined) {
+                            throw new Error('Область №' + (index + 1) + ' не содержит обязательное поле "' + field + '".');
                         }
-                        valueStart = i;
-                        
-                        let insideQuotes = false;
-                        let quoteStart = -1;
-                        
-                        for (let j = i; j < fixed.length; j++) {
-                            const char = fixed[j];
-                            const prevChar = j > 0 ? fixed[j - 1] : '';
+                    });
+        
+                    Object.entries(interactiveAreaSchema.propertyTypes).forEach(([field, type]) => {
+                        if (area[field] !== undefined && typeof area[field] !== type) {
+                            throw new Error('Поле "' + field + '" в области №' + (index + 1) + ' должно быть типа ' + type + '.');
+                        }
+                    });
+                });
+            }
+        
+            function parseManualDataString(rawString) {
+                if (!rawString || typeof rawString !== 'string') return [];
+                try {
+                    let fixed = rawString
+                        .replace(/^\s*{/, '[{').replace(/}\s*$/, '}]')
+                        .replace(/},\s*{/g, '},{')
+                        .replace(/([{\s,])([А-яA-zЁё№_\w]+):/g, '$1"$2":');
+                    
+                    let processed = '';
+                    let i = 0;
+                    
+                    while (i < fixed.length) {
+                        const keyMatch = fixed.substring(i).match(/^"([^"]+)":\s*/);
+                        if (keyMatch) {
+                            const key = keyMatch[1];
+                            i += keyMatch[0].length;
                             
-                            if (char === '"' && prevChar !== '\\') {
-                                if (!insideQuotes) {
-                                    insideQuotes = true;
-                                    quoteStart = j;
-                                } else {
-                                    insideQuotes = false;
-                                    let k = j + 1;
-                                    while (k < fixed.length && (fixed[k] === ' ' || fixed[k] === '\t')) {
-                                        k++;
+                            let valueStart = i;
+                            let valueEnd = i;
+                            let foundEnd = false;
+                            
+                            while (i < fixed.length && (fixed[i] === ' ' || fixed[i] === '\t')) {
+                                i++;
+                            }
+                            valueStart = i;
+                            
+                            let insideQuotes = false;
+                            let quoteStart = -1;
+                            
+                            for (let j = i; j < fixed.length; j++) {
+                                const char = fixed[j];
+                                const prevChar = j > 0 ? fixed[j - 1] : '';
+                                
+                                if (char === '"' && prevChar !== '\\') {
+                                    if (!insideQuotes) {
+                                        insideQuotes = true;
+                                        quoteStart = j;
+                                    } else {
+                                        insideQuotes = false;
+                                        let k = j + 1;
+                                        while (k < fixed.length && (fixed[k] === ' ' || fixed[k] === '\t')) {
+                                            k++;
+                                        }
+                                        if (k >= fixed.length || fixed[k] === ',' || fixed[k] === '}') {
+                                            valueEnd = j + 1;
+                                            foundEnd = true;
+                                            break;
+                                        }
                                     }
-                                    if (k >= fixed.length || fixed[k] === ',' || fixed[k] === '}') {
-                                        valueEnd = j + 1;
+                                }
+                                
+                                if (!insideQuotes) {
+                                    if (char === ',' || char === '}') {
+                                        valueEnd = j;
                                         foundEnd = true;
                                         break;
                                     }
                                 }
                             }
                             
-                            if (!insideQuotes) {
-                                if (char === ',' || char === '}') {
-                                    valueEnd = j;
-                                    foundEnd = true;
-                                    break;
-                                }
+                            if (!foundEnd) {
+                                valueEnd = fixed.length;
                             }
+                            
+                            let value = fixed.substring(valueStart, valueEnd).trim();
+                            
+                            processed += '"' + key + '":';
+                            
+                            if (/^".*"$/.test(value)) {
+                                processed += value;
+                            }
+                            else if (/^-?\d+([.,]\d+)?$/.test(value.replace(',', '.'))) {
+                                processed += value;
+                            }
+                            else {
+                                value = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+                                processed += '"' + value + '"';
+                            }
+                            
+                            i = valueEnd;
+                        } else {
+                            processed += fixed[i];
+                            i++;
                         }
-                        
-                        if (!foundEnd) {
-                            valueEnd = fixed.length;
-                        }
-                        
-                        let value = fixed.substring(valueStart, valueEnd).trim();
-                        
-                        processed += `"${key}":`;
-                        
-                        if (/^".*"$/.test(value)) {
-                            processed += value;
-                        }
-                        else if (/^-?\d+([.,]\d+)?$/.test(value.replace(',', '.'))) {
-                            processed += value;
-                        }
-                        else {
-                            value = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-                            processed += `"${value}"`;
-                        }
-                        
-                        i = valueEnd;
-                    } else {
-                        processed += fixed[i];
-                        i++;
                     }
+                    
+                    fixed = processed;
+        
+                    const parsed = JSON.parse(fixed);
+                    return parsed;
+                } catch (error) {
+                    const message = 'Не удалось распарсить строку ручных данных: ' + error.message;
+                    console.error(message);
+                    throw new Error(message);
+                }
+            }
+        
+            function parseInteractiveAreasString(rawString) {
+                if (!rawString || typeof rawString !== 'string') {
+                    return [];
+                }
+                let s = rawString.trim();
+                if (!s) {
+                    return [];
+                }
+    
+                // Если строка не начинается с '[', оборачиваем в []
+                if (s[0] !== '[') {
+                    s = '[' + s + ']';
+                }
+    
+                try {
+                    const arr = JSON.parse(s);
+                    if (!Array.isArray(arr)) {
+                        console.error('Некорректный формат интерактивных областей: не массив');
+                        return [];
+                    }
+                    return arr;
+                } catch (e) {
+                    console.error('Ошибка парсинга interactiveAreas:', e);
+                    return [];
+                }
+            }
+                
+            function filterDataByObject(dataArray, matchField, matchValue) {
+                if (!dataArray || !Array.isArray(dataArray)) {
+                    return [];
                 }
                 
-                fixed = processed;
-    
-                const parsed = JSON.parse(fixed);
-                return parsed;
-            } catch (error) {
-                const message = `Не удалось распарсить строку ручных данных: ${error.message}`;
-                console.error(message);
-                throw new Error(message);
-            }
-        }
-    
-        function parseInteractiveAreasString(rawString) {
-            if (!rawString || typeof rawString !== 'string') {
-                return [];
-            }
-            try {
-                let fixed = rawString
-                .replace(/^\s*{/, '[{').replace(/}\s*$/, '}]')
-                .replace(/},\s*{/g, '},{')
-                .replace(/([{\s,])(\w+):/g, '$1"$2":')
-                .replace(/:\s*([А-яA-zЁё№\d\s\\/-]+)([,\}])/g, function(match, p1, p2) {
-                    if(/^".*"$/.test(p1.trim())) return ':' + p1 + p2;
-                    if(/^\d+([\.,]\d+)?$/.test(p1.trim())) return ':' + p1 + p2;
-                    return ':"' + p1.trim().replace(/"/g, '\\"') + '"' + p2;
+                return dataArray.filter(function(item) {
+                    const fieldValue = item[matchField];
+                    if (!fieldValue) return false;
+        
+                    const fieldStr = String(fieldValue).trim().toLowerCase();
+                    const matchStr = String(matchValue).trim().toLowerCase();
+        
+                    return fieldStr === matchStr;
                 });
-    
-                const parsed = JSON.parse(fixed);
-                validateInteractiveAreasData(parsed);
-                return parsed;
-            } catch (error) {
-                const message = `Не удалось распарсить файл интерактивных областей: ${error.message}`;
-                console.error(message);
-                throw new Error(message);
             }
-        }
-    
-        function filterDataByObject(dataArray, matchField, matchValue) {
-            if (!dataArray || !Array.isArray(dataArray)) {
-                return [];
+        
+            function validateAreaBounds(areaConfig, naturalWidth, naturalHeight) {
+                const errors = [];
+        
+                if (!areaConfig || typeof areaConfig !== 'object') {
+                    errors.push('Конфигурация области не задана или имеет неверный формат');
+                    return { isValid: false, errors: errors };
+                }
+        
+                const numericValues = {};
+                ['x', 'y', 'width', 'height'].forEach(function(field) {
+                    const value = Number(areaConfig[field]);
+                    numericValues[field] = value;
+        
+                    if (!Number.isFinite(value)) {
+                        errors.push('Поле ' + field + ' должно быть числом');
+                        return;
+                    }
+        
+                    if ((field === 'width' || field === 'height') && value <= 0) {
+                        errors.push('Поле ' + field + ' должно быть больше 0');
+                    }
+        
+                    if ((field === 'x' || field === 'y') && value < 0) {
+                        errors.push('Поле ' + field + ' не может быть отрицательным');
+                    }
+                });
+        
+                if (Number.isFinite(numericValues.x) && Number.isFinite(numericValues.width)) {
+                    if (numericValues.x + numericValues.width > naturalWidth) {
+                        errors.push('Область выходит за правую границу карты');
+                    }
+                }
+        
+                if (Number.isFinite(numericValues.y) && Number.isFinite(numericValues.height)) {
+                    if (numericValues.y + numericValues.height > naturalHeight) {
+                        errors.push('Область выходит за нижнюю границу карты');
+                    }
+                }
+        
+                return { isValid: errors.length === 0, errors: errors };
             }
-            
-            return dataArray.filter(item => {
-                const fieldValue = item[matchField];
-                if (!fieldValue) return false;
-
-                const fieldStr = String(fieldValue).trim().toLowerCase();
-                const matchStr = String(matchValue).trim().toLowerCase();
-
-                return fieldStr === matchStr;
-            });
-        }
-    
-        function validateAreaBounds(areaConfig, naturalWidth, naturalHeight) {
-            const errors = [];
-    
-            if (!areaConfig || typeof areaConfig !== 'object') {
-                errors.push('Конфигурация области не задана или имеет неверный формат');
-                return { isValid: false, errors };
-            }
-    
-            const numericValues = {};
-            ['x', 'y', 'width', 'height'].forEach(field => {
-                const value = Number(areaConfig[field]);
-                numericValues[field] = value;
-    
-                if (!Number.isFinite(value)) {
-                    errors.push(`Поле ${field} должно быть числом`);
-                    return;
-                }
-    
-                if ((field === 'width' || field === 'height') && value <= 0) {
-                    errors.push(`Поле ${field} должно быть больше 0`);
-                }
-    
-                if ((field === 'x' || field === 'y') && value < 0) {
-                    errors.push(`Поле ${field} не может быть отрицательным`);
-                }
-            });
-    
-            if (Number.isFinite(numericValues.x) && Number.isFinite(numericValues.width)) {
-                if (numericValues.x + numericValues.width > naturalWidth) {
-                    errors.push('Область выходит за правую границу карты');
-                }
-            }
-    
-            if (Number.isFinite(numericValues.y) && Number.isFinite(numericValues.height)) {
-                if (numericValues.y + numericValues.height > naturalHeight) {
-                    errors.push('Область выходит за нижнюю границу карты');
-                }
-            }
-    
-            return { isValid: errors.length === 0, errors };
-        }
-    
-        function createInteractiveArea(areaConfig, scaleX, scaleY) {
-            const area = document.createElement('div');
-            area.className = 'interactive-area';
-            const x = Number(areaConfig.x);
-            const y = Number(areaConfig.y);
-            const width = Number(areaConfig.width);
-            const height = Number(areaConfig.height);
-    
-            area.style.left = (x * scaleX) + 'px';
-            area.style.top = (y * scaleY) + 'px';
-            area.style.width = (width * scaleX) + 'px';
-            area.style.height = (height * scaleY) + 'px';
-            
-            if (parsedData && Array.isArray(parsedData)) {
-                const filteredData = filterDataByObject(
-                    parsedData, 
-                    areaConfig.matchField || 'причал', 
-                    areaConfig.matchValue || areaConfig.name
-                );
+        
+            function createInteractiveArea(areaConfig, scaleX, scaleY) {
+                const area = document.createElement('div');
+                area.className = 'interactive-area';
+                const x = Number(areaConfig.x);
+                const y = Number(areaConfig.y);
+                const width = Number(areaConfig.width);
+                const height = Number(areaConfig.height);
+        
+                area.style.left = (x * scaleX) + 'px';
+                area.style.top = (y * scaleY) + 'px';
+                area.style.width = (width * scaleX) + 'px';
+                area.style.height = (height * scaleY) + 'px';
                 
-                if (filteredData.length > 0) {
-                    const iconsContainer = document.createElement('div');
-                    iconsContainer.className = 'ship-icons-container';
+                if (parsedData && Array.isArray(parsedData)) {
+                    const filteredData = filterDataByObject(
+                        parsedData, 
+                        areaConfig.matchField || 'причал', 
+                        areaConfig.matchValue || areaConfig.name
+                    );
                     
-                    function getIconPath(basePath) {
-                        if (!basePath) return 'side_ship.png';
-                        // Если base64-строка — используем как есть!
-                        if (typeof basePath === 'string' && basePath.startsWith('data:image/')) {
-                            return basePath;
+                    if (filteredData.length > 0) {
+                        const iconsContainer = document.createElement('div');
+                        iconsContainer.className = 'ship-icons-container';
+                        
+                        function getIconPath(basePath, defaultPath) {
+                            if (!basePath) return defaultPath;
+                            if (typeof basePath === 'string' && basePath.indexOf('data:') === 0) {
+                                // data URL
+                                return basePath;
+                            }
+                            if (/^[A-Za-z]:/.test(basePath) && window.location.protocol === 'file:') {
+                                return convertToFileUrl(basePath);
+                            }
+                            return normalizePath(basePath);
                         }
-                        if (/^[A-Za-z]:/.test(basePath) && window.location.protocol === 'file:') {
-                            return convertToFileUrl(basePath);
+                        
+                        const defaultSideIcon = 'side_ship.png';
+                        const defaultSternIcon = 'stern_ship.png';
+                        const sideIconSrc = getIconPath(typeof iconSideImage !== 'undefined' ? iconSideImage : null, defaultSideIcon);
+                        const sternIconSrc = getIconPath(typeof iconSternImage !== 'undefined' ? iconSternImage : null, defaultSternIcon);
+                        
+                        for (let i = 0; i < filteredData.length; i++) {
+                            const shipData = filteredData[i];
+                            
+                            const hasSecondSide = shipData.швартовка_вторым_бортом && 
+                                (String(shipData.швартовка_вторым_бортом).toLowerCase() === 'да' || 
+                                 shipData.швартовка_вторым_бортом === true);
+                            const hasStern = shipData.швартовка_кормой && 
+                                (String(shipData.швартовка_кормой).toLowerCase() === 'да' || 
+                                 shipData.швартовка_кормой === true);
+                            const needsOffset = hasSecondSide || hasStern;
+                            
+                            const currentIconSrc = hasStern ? sternIconSrc : sideIconSrc;
+                            
+                            const shipIconWrapper = document.createElement('div');
+                            shipIconWrapper.className = 'ship-icon-wrapper' + (needsOffset ? ' offset' : '');
+                            
+                            const shipLabel = document.createElement('div');
+                            shipLabel.className = 'ship-label' + (needsOffset ? ' diagonal' : '');
+                            shipLabel.textContent = shipData.судно || 'Судно';
+                            
+                            const shipIcon = document.createElement('img');
+                            shipIcon.className = 'ship-icon' + (hasSecondSide ? ' lighter' : '');
+                            shipIcon.src = currentIconSrc;
+                            shipIcon.alt = 'Судно';
+                            
+                            shipIconWrapper.addEventListener('mouseenter', function(e) {
+                                showPopup(e, shipData, areaConfig);
+                            });
+                            
+                            shipIconWrapper.addEventListener('mousemove', function(e) {
+                                updatePopupPosition(e);
+                            });
+                            
+                            shipIconWrapper.addEventListener('mouseleave', function() {
+                                closePopup();
+                            });
+                            
+                            shipIconWrapper.appendChild(shipLabel);
+                            shipIconWrapper.appendChild(shipIcon);
+                            
+                            iconsContainer.appendChild(shipIconWrapper);
                         }
-                        return normalizePath(basePath);
+                        
+                        area.appendChild(iconsContainer);
                     }
-                    
-                    const defaultSideIcon = 'side_ship.png';
-                    const defaultSternIcon = 'stern_ship.png';
-                    const sideIconSrc = (typeof iconImagePath !== 'undefined' && iconImagePath) 
-                        ? getIconPath(iconImagePath) 
-                        : defaultSideIcon;
-                    const sternIconSrc = (typeof sternIconImagePath !== 'undefined' && sternIconImagePath) 
-                        ? getIconPath(sternIconImagePath) 
-                        : defaultSternIcon;
-                    
-                    for (let i = 0; i < filteredData.length; i++) {
-                        const shipData = filteredData[i];
-                        
-                        const hasSecondSide = shipData.швартовка_вторым_бортом && 
-                                            (String(shipData.швартовка_вторым_бортом).toLowerCase() === 'да' || 
-                                             shipData.швартовка_вторым_бортом === true);
-                        const hasStern = shipData.швартовка_кормой && 
-                                        (String(shipData.швартовка_кормой).toLowerCase() === 'да' || 
-                                         shipData.швартовка_кормой === true);
-                        const needsOffset = hasSecondSide || hasStern;
-                        
-                        const currentIconSrc = hasStern ? sternIconSrc : sideIconSrc;
-                        
-                        const shipIconWrapper = document.createElement('div');
-                        shipIconWrapper.className = 'ship-icon-wrapper' + (needsOffset ? ' offset' : '');
-                        
-                        const shipLabel = document.createElement('div');
-                        shipLabel.className = 'ship-label' + (needsOffset ? ' diagonal' : '');
-                        shipLabel.textContent = shipData.судно || 'Судно';
-                        
-                        const shipIcon = document.createElement('img');
-                        shipIcon.className = 'ship-icon' + (hasSecondSide ? ' lighter' : '');
-                        shipIcon.src = currentIconSrc;
-                        shipIcon.alt = 'Судно';
-                        
-                        shipIconWrapper.addEventListener('mouseenter', function(e) {
-                            showPopup(e, shipData, areaConfig);
-                        });
-                        
-                        shipIconWrapper.addEventListener('mousemove', function(e) {
-                            updatePopupPosition(e);
-                        });
-                        
-                        shipIconWrapper.addEventListener('mouseleave', function() {
-                            closePopup();
-                        });
-                        
-                        shipIconWrapper.appendChild(shipLabel);
-                        shipIconWrapper.appendChild(shipIcon);
-                        
-                        iconsContainer.appendChild(shipIconWrapper);
-                    }
-                    
-                    area.appendChild(iconsContainer);
                 }
+                
+                return area;
             }
-            
-            return area;
-        }
+        
+            function showPopup(event, shipData, areaConfig) {
+                const popup = document.getElementById('popup');
+                const popupHeader = document.getElementById('popup-header');
+                const popupContent = document.getElementById('popup-content');
+                
+                if (!shipData) {
+                    return;
+                }
+                
+                popupHeader.textContent = areaConfig ? areaConfig.name : '';
+                
+                let contentHTML =
+                    '<div class="popup-item">' +
+                        '<div class="popup-item-title">' + (shipData.судно || 'Не указано') + '</div>' +
+                        (shipData.вид_подхода
+                            ? '<div class="popup-item-detail"><strong>Вид подхода:</strong> ' + shipData.вид_подхода + '</div>'
+                            : '') +
+                        (shipData.дата_швартовки
+                            ? '<div class="popup-item-detail"><strong>Дата швартовки:</strong> ' + formatDateTime(shipData.дата_швартовки) + '</div>'
+                            : '') +
+                        (shipData.дата_выбытия
+                            ? '<div class="popup-item-detail"><strong>Дата выбытия:</strong> ' + formatDateTime(shipData.дата_выбытия) + '</div>'
+                            : '') +
+                        (shipData.швартовка_вторым_бортом
+                            ? '<div class="popup-item-detail"><strong>Швартовка вторым бортом:</strong> ' + shipData.швартовка_вторым_бортом + '</div>'
+                            : '') +
+                        (shipData.швартовка_кормой
+                            ? '<div class="popup-item-detail"><strong>Швартовка кормой:</strong> ' + shipData.швартовка_кормой + '</div>'
+                            : '') +
+                        (shipData.судно_телефон
+                            ? '<div class="popup-item-detail"><strong>Телефон:</strong> ' + shipData.судно_телефон + '</div>'
+                            : '') +
+                    '</div>';
+                
+                popupContent.innerHTML = contentHTML;
+                popup.classList.add('visible');
+                updatePopupPosition(event);
+            }
     
-        function showPopup(event, shipData, areaConfig) {
-            const popup = document.getElementById('popup');
-            const popupHeader = document.getElementById('popup-header');
-            const popupContent = document.getElementById('popup-content');
-            
-            if (!shipData) {
-                return;
+        
+            function updatePopupPosition(event) {
+                const popup = document.getElementById('popup');
+                const popupRect = popup.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                
+                let left = event.clientX + 15;
+                let top = event.clientY + 15;
+                
+                if (left + popupRect.width > viewportWidth) {
+                    left = event.clientX - popupRect.width - 15;
+                }
+                if (top + popupRect.height > viewportHeight) {
+                    top = event.clientY - popupRect.height - 15;
+                }
+                
+                popup.style.left = left + 'px';
+                popup.style.top = top + 'px';
+            }
+        
+            function closePopup() {
+                const popup = document.getElementById('popup');
+                popup.classList.remove('visible');
+            }
+        
+            function renderInteractiveAreas() {
+                if (!mapReady || !areasReady || !mapImage || !interactiveAreasContainer) {
+                    return;
+                }
+                
+                const clientWidth = mapImage.clientWidth;
+                const clientHeight = mapImage.clientHeight;
+                const naturalWidth = mapImage.naturalWidth;
+                const naturalHeight = mapImage.naturalHeight;
+                
+                if (!clientWidth || !clientHeight || !naturalWidth || !naturalHeight) {
+                    return;
+                }
+                
+                const scaleX = clientWidth / naturalWidth;
+                const scaleY = clientHeight / naturalHeight;
+                
+                interactiveAreasContainer.innerHTML = '';
+                
+                if (!interactiveAreas || interactiveAreas.length === 0) {
+                    console.warn('Интерактивные области отсутствуют или не загружены.');
+                    return;
+                }
+                
+                interactiveAreas.forEach(function(areaConfig) {
+                    const validation = validateAreaBounds(areaConfig, naturalWidth, naturalHeight);
+                    if (!validation.isValid) {
+                        console.warn('Область "' + (areaConfig.name || 'без названия') + '" пропущена: ' + validation.errors.join('; '));
+                        return;
+                    }
+        
+                    const area = createInteractiveArea(areaConfig, scaleX, scaleY);
+                    interactiveAreasContainer.appendChild(area);
+                });
             }
             
-            popupHeader.textContent = areaConfig ? areaConfig.name : '';
-            
-            let contentHTML = `
-                <div class="popup-item">
-                    <div class="popup-item-title">${shipData.судно || 'Не указано'}</div>
-                    ${shipData.вид_подхода ? `<div class="popup-item-detail"><strong>Вид подхода:</strong> ${shipData.вид_подхода}</div>` : ''}
-                    ${shipData.дата_швартовки ? `<div class="popup-item-detail"><strong>Дата швартовки:</strong> ${formatDateTime(shipData.дата_швартовки)}</div>` : ''}
-                    ${shipData.дата_выбытия ? `<div class="popup-item-detail"><strong>Дата выбытия:</strong> ${formatDateTime(shipData.дата_выбытия)}</div>` : ''}
-                    ${shipData.швартовка_вторым_бортом ? `<div class="popup-item-detail"><strong>Швартовка вторым бортом:</strong> ${shipData.швартовка_вторым_бортом}</div>` : ''}
-                    ${shipData.швартовка_кормой ? `<div class="popup-item-detail"><strong>Швартовка кормой:</strong> ${shipData.швартовка_кормой}</div>` : ''}
-                    ${shipData.судно_телефон ? `<div class="popup-item-detail"><strong>Телефон:</strong> ${shipData.судно_телефон}</div>` : ''}
-                </div>
-            `;
-            popupContent.innerHTML = contentHTML;
-            
-            popup.classList.add('visible');
-            updatePopupPosition(event);
-        }
-    
-        function updatePopupPosition(event) {
-            const popup = document.getElementById('popup');
-            const popupRect = popup.getBoundingClientRect();
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-            
-            let left = event.clientX + 15;
-            let top = event.clientY + 15;
-            
-            if (left + popupRect.width > viewportWidth) {
-                left = event.clientX - popupRect.width - 15;
-            }
-            if (top + popupRect.height > viewportHeight) {
-                top = event.clientY - popupRect.height - 15;
+            function loadMapImage() {
+                if (!mapImage) {
+                    return;
+                }
+                
+                if (!mapImageData) {
+                    console.warn('Бинарные данные карты (mapImageData) не указаны.');
+                    return;
+                }
+                
+                const imageSrc = mapImageData;
+                mapImage.src = imageSrc;
+                
+                if (mapImage.complete && mapImage.naturalWidth) {
+                    mapReady = true;
+                    renderInteractiveAreas();
+                    return;
+                }
+                
+                mapImage.addEventListener('load', function() {
+                    mapReady = true;
+                    renderInteractiveAreas();
+                });
+                
+                mapImage.addEventListener('error', function() {
+                    console.error('Не удалось загрузить изображение карты из mapImageData.');
+                });
             }
             
-            popup.style.left = left + 'px';
-            popup.style.top = top + 'px';
-        }
-    
-        function closePopup() {
-            const popup = document.getElementById('popup');
-            popup.classList.remove('visible');
-        }
-    
-        function renderInteractiveAreas() {
-            if (!mapReady || !areasReady || !mapImage || !interactiveAreasContainer) {
-                return;
-            }
-            
-            const clientWidth = mapImage.clientWidth;
-            const clientHeight = mapImage.clientHeight;
-            const naturalWidth = mapImage.naturalWidth;
-            const naturalHeight = mapImage.naturalHeight;
-            
-            if (!clientWidth || !clientHeight || !naturalWidth || !naturalHeight) {
-                return;
-            }
-            
-            const scaleX = clientWidth / naturalWidth;
-            const scaleY = clientHeight / naturalHeight;
-            
-            interactiveAreasContainer.innerHTML = '';
-            
-            if (!interactiveAreas || interactiveAreas.length === 0) {
-                console.warn('Интерактивные области отсутствуют или не загружены.');
-                return;
-            }
-            
-            interactiveAreas.forEach(areaConfig => {
-                const validation = validateAreaBounds(areaConfig, naturalWidth, naturalHeight);
-                if (!validation.isValid) {
-                    console.warn(`Область "${areaConfig.name || 'без названия'}" пропущена: ${validation.errors.join('; ')}`);
+            function loadInteractiveAreas() {
+                if (!interactiveAreasData || !Array.isArray(interactiveAreasData)) {
+                    console.warn('Нет данных интерактивных областей.');
                     return;
                 }
     
-                const area = createInteractiveArea(areaConfig, scaleX, scaleY);
-                interactiveAreasContainer.appendChild(area);
-            });
-        }
+                try {
+                    validateInteractiveAreasData(interactiveAreasData);
+                } catch (e) {
+                    console.error('Ошибка валидации интерактивных областей:', e);
+                    return;
+                }
         
-        function loadMapImage() {
-            if (!mapImage) {
-                return;
-            }
-            
-            if (!mapImagePath) {
-                console.warn('Путь к изображению карты не указан. Укажите путь в переменной mapImagePath.');
-                return;
-            }
-            
-            let imageSrc = mapImagePath;
-            
-            // Если это base64, использовать напрямую, иначе пробовать пути
-            if (typeof mapImagePath === 'string' && mapImagePath.startsWith('data:image/')) {
-                imageSrc = mapImagePath;
-            } else if (/^[A-Za-z]:/.test(mapImagePath) && window.location.protocol === 'file:') {
-                imageSrc = convertToFileUrl(mapImagePath);
-            } else {
-                imageSrc = normalizePath(mapImagePath);
-            }
-            
-            mapImage.src = imageSrc;
-            
-            if (mapImage.complete && mapImage.naturalWidth) {
-                mapReady = true;
-                renderInteractiveAreas();
-                return;
-            }
-            
-            mapImage.addEventListener('load', function() {
-                mapReady = true;
-                renderInteractiveAreas();
-            });
-            
-            mapImage.addEventListener('error', function() {
-                console.error('Не удалось загрузить изображение карты по пути:', mapImagePath);
-                console.warn('Попробуйте использовать относительный путь (например, "yard_map.jpg") или запустите через веб-сервер.');
-            });
-        }
-        
-        function loadInteractiveAreas() {
-            if (!interactiveAreasData) {
-                console.warn('Нет данных или пути к интерактивным областям.');
-                return;
-            }
-    
-            if (Array.isArray(interactiveAreasData)) {
                 interactiveAreas = interactiveAreasData;
                 areasReady = true;
                 renderInteractiveAreas();
-                return;
             }
-        }
-        // Определение данных
-        const externalData = parseManualDataString("scriptData");
-        const interactiveAreasData =  parseInteractiveAreasString("areasData");
-        
-        // Основные переменные base64
-        var mapImagePath = "data:image/jpeg;base64,путь_карта";
-        var iconImagePath = "data:image/png;base64,путь_иконка"; 
-        var sternIconImagePath = "data:image/png;base64,путь_иконка_кормой";
     
-        // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            mapImage = document.getElementById('map-image');
-            interactiveAreasContainer = document.getElementById('interactive-areas');
-            
-            loadMapImage();
-            loadInteractiveAreas();
-            
-            if (externalData && externalData !== "") {
-                if (typeof externalData === 'string') {
-                    try {
-                        parsedData = parseDataString(externalData);
-                    } catch (error) {
-                        console.error(error.message);
-                    }
-                } else if (Array.isArray(externalData) && externalData.length > 0) {
-                    parsedData = externalData;
-                }
-            }
-            
-            // Проверяем наличие данных и показываем сообщение, если данных нет
-            const noDataLabel = document.getElementById('no-data-label');
-            if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) {
-                if (noDataLabel) {
-                    noDataLabel.classList.add('visible');
-                }
-            } else {
-                if (noDataLabel) {
-                    noDataLabel.classList.remove('visible');
-                }
+            // Определение данных
+            const externalData = parseManualDataString("scriptData");
+            interactiveAreasData = parseInteractiveAreasString("areasData");
+            const mapImageData = "data:image/jpg;base64,mapImageJPG";
+            const iconSideImage = "data:image/png;base64,iconSideImagePNG";
+            const iconSternImage = "data:image/png;base64,iconSternImagePNG";
+    
+            document.addEventListener('DOMContentLoaded', function() {
+                mapImage = document.getElementById('map-image');
+                interactiveAreasContainer = document.getElementById('interactive-areas');
                 
-                // Проверяем тип расположения (Фактический или Плановый)
-                const locationTypeLabel = document.getElementById('location-type-label');
-                let hasFactual = false;
-                let hasPlanned = false;
+                loadMapImage();
+                loadInteractiveAreas();
                 
-                parsedData.forEach(ship => {
-                    if (ship.вид_подхода) {
-                        const approachType = String(ship.вид_подхода).trim();
-                        if (approachType === 'Фактический') {
-                            hasFactual = true;
-                        } else if (approachType === 'Плановый') {
-                            hasPlanned = true;
+                if (externalData && externalData !== "") {
+                    if (typeof externalData === 'string') {
+                        try {
+                            parsedData = parseDataString(externalData);
+                        } catch (error) {
+                            console.error(error.message);
                         }
+                    } else if (Array.isArray(externalData) && externalData.length > 0) {
+                        parsedData = externalData;
+                    }
+                }
+                
+                const noDataLabel = document.getElementById('no-data-label');
+                if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) {
+                    if (noDataLabel) {
+                        noDataLabel.classList.add('visible');
+                    }
+                } else {
+                    if (noDataLabel) {
+                        noDataLabel.classList.remove('visible');
+                    }
+                    
+                    const locationTypeLabel = document.getElementById('location-type-label');
+                    let hasFactual = false;
+                    let hasPlanned = false;
+                    
+                    parsedData.forEach(function(ship) {
+                        if (ship.вид_подхода) {
+                            const approachType = String(ship.вид_подхода).trim();
+                            if (approachType === 'Фактический') {
+                                hasFactual = true;
+                            } else if (approachType === 'Плановый') {
+                                hasPlanned = true;
+                            }
+                        }
+                    });
+                    
+                    if (locationTypeLabel) {
+                        if (hasFactual) {
+                            locationTypeLabel.textContent = 'Факт';
+                            locationTypeLabel.classList.add('visible');
+                        } else if (hasPlanned) {
+                            locationTypeLabel.textContent = 'План';
+                            locationTypeLabel.classList.add('visible');
+                        } else {
+                            locationTypeLabel.classList.remove('visible');
+                        }
+                    }
+                }
+                
+                if (mapReady && areasReady) {
+                    renderInteractiveAreas();
+                }
+                
+                document.addEventListener('click', function(e) {
+                    const popup = document.getElementById('popup');
+                    if (!popup.contains(e.target) && 
+                        !e.target.classList.contains('interactive-area') && 
+                        !e.target.classList.contains('ship-icon') &&
+                        !e.target.classList.contains('ship-icon-wrapper') &&
+                        !e.target.classList.contains('ship-label')) {
+                        closePopup();
                     }
                 });
                 
-                if (locationTypeLabel) {
-                    if (hasFactual) {
-                        locationTypeLabel.textContent = 'Факт';
-                        locationTypeLabel.classList.add('visible');
-                    } else if (hasPlanned) {
-                        locationTypeLabel.textContent = 'План';
-                        locationTypeLabel.classList.add('visible');
-                    } else {
-                        locationTypeLabel.classList.remove('visible');
-                    }
-                }
-            }
-            
-            // Перерисовываем области после загрузки данных, чтобы отобразить иконки
-            if (mapReady && areasReady) {
-                renderInteractiveAreas();
-            }
-            
-            // Закрытие попапа при клике вне его
-            document.addEventListener('click', function(e) {
-                const popup = document.getElementById('popup');
-                if (!popup.contains(e.target) && 
-                    !e.target.classList.contains('interactive-area') && 
-                    !e.target.classList.contains('ship-icon') &&
-                    !e.target.classList.contains('ship-icon-wrapper') &&
-                    !e.target.classList.contains('ship-label')) {
-                    closePopup();
-                }
+                window.addEventListener('resize', function() {
+                    renderInteractiveAreas();
+                });
             });
-            
-            window.addEventListener('resize', function() {
-                renderInteractiveAreas();
-            });
-        });
-    </script></body></html>
+        </script></body></html>
