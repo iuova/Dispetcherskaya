@@ -98,6 +98,7 @@
             transition: border-color 0.3s ease, background-color 0.3s ease;
             z-index: 10;
         }
+
         .ship-icons-container {
             position: absolute;
             top: 50%;
@@ -106,7 +107,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 0;
             pointer-events: none;
             z-index: 11;
         }
@@ -131,13 +132,6 @@
         .ship-icon.lighter {
             filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(100%) contrast(100%);
             opacity: 0.6;
-        }
-        
-        .ship-icon-wrapper.offset {
-            position: relative;
-            top: -25px;
-            margin-left: -10px;
-            margin-right: -10px;
         }
         
         .ship-label {
@@ -694,7 +688,7 @@
                         const currentIconSrc = hasStern ? sternIconSrc : sideIconSrc;
                         
                         const shipIconWrapper = document.createElement('div');
-                        shipIconWrapper.className = 'ship-icon-wrapper' + (needsOffset ? ' offset' : '');
+                        shipIconWrapper.className = 'ship-icon-wrapper';
                         
                         const shipLabel = document.createElement('div');
                         shipLabel.className = 'ship-label' + (needsOffset ? ' diagonal' : '');
