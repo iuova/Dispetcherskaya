@@ -110,14 +110,14 @@
             justify-content: center;
             pointer-events: none;
             z-index: 11;
-            gap: 2px; /* минимальный отступ между строками */
+            gap: 2px;
         }
 
         .ships-row {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 2px; /* плотное размещение иконок */
+            gap: 2px;
             pointer-events: none;
         }
         
@@ -164,8 +164,6 @@
             transform-origin: center;
         }
 
-        /* Метка прогресс-бара причала:
-           теперь это обычный элемент ниже ship-иконок, а не прижатый к нижнему краю области */
         .dock-progress-label {
             width: 100px;
             margin-top: 1px;
@@ -191,8 +189,8 @@
             background: linear-gradient(90deg, #66bb6a 0%, #ef5350 100%);
             overflow: hidden;
             display: flex;
-            padding: 0;  /* убрать возможные внутренние отступы */
-            margin: 0;   /* убрать возможные внешние отступы */
+            padding: 0;
+            margin: 0;
         }
 
         .dock-progress-occupied {
@@ -225,17 +223,7 @@
         .popup.visible {
             display: block;
         }
-        
-        .popup-header {
-            font-weight: 600;
-            font-size: 13px;
-            color: #424242;
-            margin: 0;
-            padding: 8px 12px;
-            background-color: #e0e0e0;
-            border-bottom: 1px solid #bdbdbd;
-        }
-        
+
         .popup-content {
             margin: 0;
             padding: 0;
@@ -845,7 +833,7 @@
                     areaConfig.matchValue || areaConfig.name
                 );
             }
-            if (!filteredData.length) return area; // Нет кораблей — не выводить label
+            if (!filteredData.length) return area;
 
             // 2. Создаём основной label
             const areaLabel = document.createElement('div');
@@ -924,14 +912,14 @@
     
         function showPopup(event, shipData, areaConfig) {
             const popup = document.getElementById('popup');
-            const popupHeader = document.getElementById('popup-header');
+            // const popupHeader = document.getElementById('popup-header');
             const popupContent = document.getElementById('popup-content');
             
             if (!shipData) {
                 return;
             }
             
-            popupHeader.textContent = areaConfig ? areaConfig.name : '';
+            // popupHeader.textContent = areaConfig ? areaConfig.name : '';
             
             let contentHTML = `
                 <div class="popup-item">
