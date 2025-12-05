@@ -183,7 +183,7 @@
         }
 		
         .dock-progress-bar {
-            width: 100%;
+            width: 60px;
             height: 6px;
             border-radius: 3px;
             background: linear-gradient(90deg, #66bb6a 0%, #ef5350 100%);
@@ -195,13 +195,26 @@
 
         .dock-progress-occupied {
             height: 100%;
-            /* прозрачность для overlay с градиентом */
             background: transparent;
         }
 
         .dock-progress-free {
             height: 100%;
             background: transparent;
+        }
+
+        /* контейнер: progress bar + длина причала справа */
+        .area-label .dock-progress-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 2px;
+        }
+
+        .area-label .dock-progress-length {
+            font-size: 9px;
+            color: #212121;
+            white-space: nowrap;
         }
         
         .popup {
@@ -300,7 +313,7 @@
             box-shadow: 0 2px 10px 0 rgba(90,100,120,0.30);
         }
         .area-label .area-title {
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 700;
             color: #ffffff;
             background: #9098a2;
@@ -354,7 +367,7 @@
         }
         .area-label .ship-icon.lighter { opacity: 0.6; }
         .area-label .dock-progress-bar {
-            width: 92px;
+            width: 60px;
             height: 5px;
             border-radius: 3px;
             background: #66bb6a;
@@ -572,7 +585,7 @@
                                     while (k < fixed.length && (fixed[k] === ' ' || fixed[k] === '\t')) {
                                         k++;
                                     }
-                                    if (k >= fixed.length || (k < fixed.length && (fixed[k] === ',' || fixed[k] === '}'))) {
+                                    if (k >= fixed.length || (k < fixed.length && (k === fixed.length || fixed[k] === ',' || fixed[k] === '}'))) {
                                         valueEnd = j + 1;
                                         foundEnd = true;
                                         break;
@@ -787,6 +800,15 @@
             let occupiedPercent = effTotal > 0 ? (busy / effTotal) * 100 : 0;
             occupiedPercent = Math.max(0, Math.min(occupiedPercent, 100));
 
+            // строка под баром: занято / свободно
+            const textDiv = document.createElement('div');
+            textDiv.className = 'dock-progress-text';
+            textDiv.textContent = `${formatMeters(busy)} / ${formatMeters(free)} м`;
+
+            // контейнер: progress bar + длина причала справа
+            const rowWrap = document.createElement('div');
+            rowWrap.className = 'dock-progress-row';
+
             const barWrap = document.createElement('div');
             barWrap.className = 'dock-progress-bar';
             barWrap.style.position = 'relative';
@@ -796,7 +818,6 @@
             barFill.style.width = occupiedPercent + '%';
             barWrap.appendChild(barFill);
 
-            // Если не полностью заполнен — добавить желтую незаполненную часть
             if (occupiedPercent < 100) {
                 const barEmpty = document.createElement('div');
                 barEmpty.className = 'bar-empty';
@@ -805,14 +826,21 @@
                 barWrap.appendChild(barEmpty);
             }
 
-            const textDiv = document.createElement('div');
-            textDiv.className = 'dock-progress-text';
-            textDiv.textContent = `${formatMeters(busy)} / ${formatMeters(free)} м`;
-            return {barWrap, textDiv};
+            rowWrap.appendChild(barWrap);
+
+            // длина причала справа от бара
+            const lengthStr = total > 0 ? formatMeters(total) : '';
+            if (lengthStr) {
+                const lengthDiv = document.createElement('div');
+                lengthDiv.className = 'dock-progress-length';
+                lengthDiv.textContent = `${lengthStr} м`;
+                rowWrap.appendChild(lengthDiv);
+            }
+
+            return { barRow: rowWrap, textDiv };
         }
 
         function createInteractiveArea(areaConfig, scaleX, scaleY) {
-            // Создание DOM-области
             const area = document.createElement('div');
             area.className = 'interactive-area';
             const x = Number(areaConfig.x);
@@ -835,13 +863,27 @@
             }
             if (!filteredData.length) return area;
 
+            // 1а. Находим данные по причалу для прогресс-бара и длины
+            let dockInfo = null;
+            if (parsedDocksData && Array.isArray(parsedDocksData) && parsedDocksData.length > 0) {
+                const dockMatches = filterDataByObject(
+                    parsedDocksData,
+                    'причал',
+                    areaConfig.matchValue || areaConfig.name
+                );
+                if (dockMatches.length > 0) {
+                    dockInfo = dockMatches[0];
+                }
+            }
+
             // 2. Создаём основной label
             const areaLabel = document.createElement('div');
             areaLabel.className = 'area-label';
-            // Заголовок с названием причала
+
             const title = document.createElement('div');
             title.className = 'area-title';
-            title.textContent = areaConfig.name || areaConfig.matchValue || '';
+            const titleText = areaConfig.name || areaConfig.matchValue || '';
+            title.textContent = titleText;
             areaLabel.appendChild(title);
 
             // 3. Формируем строку иконок
@@ -866,17 +908,17 @@
 
                 const shipGroup = document.createElement('div');
                 shipGroup.className = 'ship-group';
-                // Название ship
+
                 const shipName = document.createElement('div');
                 shipName.className = 'ship-name';
                 shipName.textContent = shipData.судно || 'Судно';
                 shipGroup.appendChild(shipName);
-                // Иконка
+
                 const shipIcon = document.createElement('img');
                 shipIcon.className = 'ship-icon' + (hasSecondSide ? ' lighter' : '');
                 shipIcon.src = currentIconSrc;
                 shipIcon.alt = 'Судно';
-                // Popup только на иконке
+
                 shipIcon.addEventListener('mouseenter', (e) => { showPopup(e, shipData, areaConfig); });
                 shipIcon.addEventListener('mousemove', (e) => { updatePopupPosition(e); });
                 shipIcon.addEventListener('mouseleave', () => { closePopup(); });
@@ -885,41 +927,32 @@
             });
             areaLabel.appendChild(shipsRow);
 
-            // 4. Прогрессбар
-            let dockProgressBar = null, dockProgressText = null;
-            if (parsedDocksData && Array.isArray(parsedDocksData) && parsedDocksData.length > 0) {
-                const dockMatches = filterDataByObject(
-                    parsedDocksData,
-                    'причал',
-                    areaConfig.matchValue || areaConfig.name
-                );
-                if (dockMatches.length > 0) {
-                    const progress = createDockProgressElement(dockMatches[0]);
-                    if (progress) {
-                        dockProgressBar = progress.barWrap;
-                        dockProgressText = progress.textDiv;
-                    }
+            // 4. Прогрессбар по причалу + длина в конце бара
+            let dockProgressRow = null, dockProgressText = null;
+            if (dockInfo) {
+                const progress = createDockProgressElement(dockInfo);
+                if (progress) {
+                    dockProgressRow = progress.barRow;
+                    dockProgressText = progress.textDiv;
                 }
             }
-            if (dockProgressBar && dockProgressText) {
+
+            if (dockProgressText && dockProgressRow) {
                 areaLabel.appendChild(dockProgressText);
-                areaLabel.appendChild(dockProgressBar);
+                areaLabel.appendChild(dockProgressRow);
             }
-            //
+
             area.appendChild(areaLabel);
             return area;
         }
     
         function showPopup(event, shipData, areaConfig) {
             const popup = document.getElementById('popup');
-            // const popupHeader = document.getElementById('popup-header');
             const popupContent = document.getElementById('popup-content');
             
             if (!shipData) {
                 return;
             }
-            
-            // popupHeader.textContent = areaConfig ? areaConfig.name : '';
             
             let contentHTML = `
                 <div class="popup-item">
