@@ -105,18 +105,26 @@
             left: 50%;
             transform: translate(-50%, -50%);
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 0;
             pointer-events: none;
             z-index: 11;
+        }
+
+        .ships-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px; /* расстояние между иконками по горизонтали */
+            pointer-events: none;
         }
         
         .ship-icon-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 0px;
             pointer-events: auto;
         }
         
@@ -152,6 +160,43 @@
         .ship-label.diagonal {
             transform: rotate(-38deg);
             transform-origin: center;
+        }
+
+        /* Метка прогресс-бара причала:
+           теперь это обычный элемент ниже ship-иконок, а не прижатый к нижнему краю области */
+        .dock-progress-label {
+            width: 120px; /* длина прогресс-бара по ТЗ */
+            margin-top: 5px; /* ровно 5px ниже ship-иконок */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .dock-progress-bar {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background-color: #bdbdbd;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .dock-progress-occupied {
+            height: 100%;
+            background-color: #ef5350; /* занято */
+        }
+
+        .dock-progress-free {
+            height: 100%;
+            background-color: #66bb6a; /* свободно */
+        }
+
+        .dock-progress-text {
+            margin-top: 2px;
+            font-size: 9px;
+            color: #212121;
+            white-space: nowrap;
         }
         
         .popup {
@@ -262,7 +307,8 @@
     </div>
     
     <script>
-        let parsedData = null;
+        let parsedData = null;          // данные по судам
+        let parsedDocksData = null;     // данные по причалам (dataAllDocks)
         let interactiveAreas = [];
         let mapImage = null;
         let interactiveAreasContainer = null;
@@ -282,7 +328,6 @@
             }
         };
         
-        // Функция для нормализации путей Windows (конвертация обратных слешей в прямые)
         function normalizePath(path) {
             if (!path || typeof path !== 'string') {
                 return path;
@@ -290,7 +335,6 @@
             return path.replace(/\\/g, '/');
         }
         
-        // Функция для конвертации абсолютного пути Windows в file:// URL
         function convertToFileUrl(path) {
             if (!path || typeof path !== 'string') {
                 return path;
@@ -305,7 +349,6 @@
             return normalizePath(path);
         }
         
-        // Функция для парсинга строки данных в массив объектов
         function parseDataString(dataString) {
             if (!dataString || typeof dataString !== 'string') {
                 return null;
@@ -332,7 +375,6 @@
             }
         }
     
-        // Функция для преобразования даты из формата "dd.mm.yyyy hh:mm:ss" в Date
         function parseDateTime(dateTimeString) {
             if (!dateTimeString) return null;
             
@@ -349,7 +391,6 @@
             return new Date(dateTimeString);
         }
     
-        // Функция для форматирования даты и времени
         function formatDateTime(dateTimeString) {
             if (!dateTimeString) return '';
             
@@ -388,7 +429,7 @@
             });
         }
     
-        // Функция для парсинга данных (ручные данные по судам)
+        // Ручные данные (суда / причалы)
         function parseManualDataString(rawString) {
             if (!rawString || typeof rawString !== 'string') return [];
             try {
@@ -432,7 +473,7 @@
                                     while (k < fixed.length && (fixed[k] === ' ' || fixed[k] === '\t')) {
                                         k++;
                                     }
-                                    if (k >= fixed.length || fixed[k] === ',' || fixed[k] === '}') {
+                                    if (k >= fixed.length || (k < fixed.length && (fixed[k] === ',' || fixed[k] === '}'))) {
                                         valueEnd = j + 1;
                                         foundEnd = true;
                                         break;
@@ -461,7 +502,7 @@
                             processed += value;
                         }
                         else if (/^-?\d+([.,]\d+)?$/.test(value.replace(',', '.'))) {
-                            processed += value;
+                            processed += value.replace(',', '.');
                         }
                         else {
                             value = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -486,17 +527,6 @@
             }
         }
     
-        // Функция для парсинга данных интерактивных областей
-        // Ожидает строку вида:
-        // {
-        //   name: СЛИП,
-        //   x: 956,
-        //   ...
-        // },
-        // {
-        //   name: причал №27,
-        //   ...
-        // }
         function parseInteractiveAreasString(rawString) {
             if (!rawString || typeof rawString !== 'string') {
                 return [];
@@ -517,9 +547,7 @@
                 let s = trimmed;
 
                 s = s.replace(/\uFEFF/g, '');
-
                 s = s.replace(/,(\s*[}\]])/g, '$1');
-
                 s = s.trim();
                 if (!s.startsWith('[')) {
                     s = s.replace(/}\s*,\s*{/g, '},{');
@@ -559,7 +587,6 @@
             }
         }
     
-        // Функция для фильтрации данных по объекту
         function filterDataByObject(dataArray, matchField, matchValue) {
             if (!dataArray || !Array.isArray(dataArray)) {
                 return [];
@@ -618,7 +645,6 @@
             return { isValid: errors.length === 0, errors };
         }
     
-        // Вспомогательная функция для получения src иконки из Base64-строки
         function getIconSrcFromBase64(base64String, defaultFileName) {
             if (!base64String || typeof base64String !== 'string') {
                 return defaultFileName;
@@ -637,7 +663,63 @@
             return 'data:image/png;base64,' + trimmed;
         }
 
-        // Функция для создания интерактивной области
+        function parseNumeric(value) {
+            if (value === null || value === undefined) return 0;
+            const str = String(value).replace(/\s+/g, '').replace(',', '.');
+            const num = Number(str);
+            return Number.isFinite(num) ? num : 0;
+        }
+
+        function formatMeters(value) {
+            const num = parseNumeric(value);
+            let str = num.toFixed(2);
+            str = str.replace(/\.00$/, '');
+            str = str.replace('.', ',');
+            return str;
+        }
+
+        function createDockProgressElement(dockInfo) {
+            const total = parseNumeric(dockInfo.причала_длина);
+            const busy = parseNumeric(dockInfo.занято);
+            const free = parseNumeric(dockInfo.свободно);
+
+            const effectiveTotal = total > 0 ? total : (busy + free);
+            let occupiedPercent = 0;
+
+            if (effectiveTotal > 0) {
+                occupiedPercent = (busy / effectiveTotal) * 100;
+            }
+
+            if (occupiedPercent < 0) occupiedPercent = 0;
+            if (occupiedPercent > 100) occupiedPercent = 100;
+
+            const dockLabel = document.createElement('div');
+            dockLabel.className = 'dock-progress-label';
+
+            const bar = document.createElement('div');
+            bar.className = 'dock-progress-bar';
+
+            const occupiedDiv = document.createElement('div');
+            occupiedDiv.className = 'dock-progress-occupied';
+            occupiedDiv.style.width = occupiedPercent + '%';
+
+            const freeDiv = document.createElement('div');
+            freeDiv.className = 'dock-progress-free';
+            freeDiv.style.width = (100 - occupiedPercent) + '%';
+
+            bar.appendChild(occupiedDiv);
+            bar.appendChild(freeDiv);
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'dock-progress-text';
+            textDiv.textContent = `${formatMeters(busy)} / ${formatMeters(free)} м`;
+
+            dockLabel.appendChild(bar);
+            dockLabel.appendChild(textDiv);
+
+            return dockLabel;
+        }
+
         function createInteractiveArea(areaConfig, scaleX, scaleY) {
             const area = document.createElement('div');
             area.className = 'interactive-area';
@@ -650,7 +732,14 @@
             area.style.top = (y * scaleY) + 'px';
             area.style.width = (width * scaleX) + 'px';
             area.style.height = (height * scaleY) + 'px';
-            
+
+            const iconsContainer = document.createElement('div');
+            iconsContainer.className = 'ship-icons-container';
+
+            let hasShips = false;
+            let hasDockProgress = false;
+
+            // Иконки судов
             if (parsedData && Array.isArray(parsedData)) {
                 const filteredData = filterDataByObject(
                     parsedData, 
@@ -659,8 +748,10 @@
                 );
                 
                 if (filteredData.length > 0) {
-                    const iconsContainer = document.createElement('div');
-                    iconsContainer.className = 'ship-icons-container';
+                    hasShips = true;
+
+                    const shipsRow = document.createElement('div');
+                    shipsRow.className = 'ships-row';
                     
                     const defaultSideIcon = 'side_ship.png';
                     const defaultSternIcon = 'stern_ship.png';
@@ -714,17 +805,35 @@
                         shipIconWrapper.appendChild(shipLabel);
                         shipIconWrapper.appendChild(shipIcon);
                         
-                        iconsContainer.appendChild(shipIconWrapper);
+                        shipsRow.appendChild(shipIconWrapper);
                     }
                     
-                    area.appendChild(iconsContainer);
+                    iconsContainer.appendChild(shipsRow);
                 }
+            }
+
+            // Прогресс-бар по причалу (ниже ship-иконок)
+            if (parsedDocksData && Array.isArray(parsedDocksData) && parsedDocksData.length > 0) {
+                const dockMatches = filterDataByObject(
+                    parsedDocksData,
+                    'причал',
+                    areaConfig.matchValue || areaConfig.name
+                );
+                if (dockMatches.length > 0) {
+                    hasDockProgress = true;
+                    const dockInfo = dockMatches[0];
+                    const dockProgressElement = createDockProgressElement(dockInfo);
+                    iconsContainer.appendChild(dockProgressElement);
+                }
+            }
+
+            if (hasShips || hasDockProgress) {
+                area.appendChild(iconsContainer);
             }
             
             return area;
         }
     
-        // Функция для отображения всплывающего окна
         function showPopup(event, shipData, areaConfig) {
             const popup = document.getElementById('popup');
             const popupHeader = document.getElementById('popup-header');
@@ -753,7 +862,6 @@
             updatePopupPosition(event);
         }
     
-        // Функция для обновления позиции всплывающего окна
         function updatePopupPosition(event) {
             const popup = document.getElementById('popup');
             const popupRect = popup.getBoundingClientRect();
@@ -774,13 +882,11 @@
             popup.style.top = top + 'px';
         }
     
-        // Функция для закрытия всплывающего окна
         function closePopup() {
             const popup = document.getElementById('popup');
             popup.classList.remove('visible');
         }
     
-        // Функция для рендеринга интерактивных областей с учетом масштаба
         function renderInteractiveAreas() {
             if (!mapReady || !areasReady || !mapImage || !interactiveAreasContainer) {
                 return;
@@ -817,7 +923,6 @@
             });
         }
         
-        // Функция загрузки изображения карты из пути к файлу
         function loadMapImage() {
             if (!mapImage) {
                 return;
@@ -869,15 +974,15 @@
             }
         }
 
-        const externalData = parseManualDataString("dataScript");
+        const externalData = parseManualDataString("dataShips");
         const interactiveAreasData =  parseInteractiveAreasString("dataAreas");
+        const docksData = parseManualDataString("dataAllDocks");
 
         const mapImagePath = "mapJpgPath";
 
         const iconSideImagePNG = "iconSidePNG";
         const iconSternImagePNG = "iconSternPNG";
     
-        // Инициализация при загрузке страницы
         function onDOMContentLoaded() {
             mapImage = document.getElementById('map-image');
             interactiveAreasContainer = document.getElementById('interactive-areas');
@@ -896,9 +1001,17 @@
                     parsedData = externalData;
                 }
             }
+
+            if (Array.isArray(docksData) && docksData.length > 0) {
+                parsedDocksData = docksData;
+            }
             
             const noDataLabel = document.getElementById('no-data-label');
-            if (!parsedData || !Array.isArray(parsedData) || parsedData.length === 0) {
+
+            const hasShipData = parsedData && Array.isArray(parsedData) && parsedData.length > 0;
+            const hasDockData = parsedDocksData && Array.isArray(parsedDocksData) && parsedDocksData.length > 0;
+
+            if (!hasShipData && !hasDockData) {
                 if (noDataLabel) {
                     noDataLabel.classList.add('visible');
                 }
@@ -906,11 +1019,13 @@
                 if (noDataLabel) {
                     noDataLabel.classList.remove('visible');
                 }
-                
-                const locationTypeLabel = document.getElementById('location-type-label');
-                let hasFactual = false;
-                let hasPlanned = false;
-                
+            }
+            
+            const locationTypeLabel = document.getElementById('location-type-label');
+            let hasFactual = false;
+            let hasPlanned = false;
+            
+            if (hasShipData) {
                 parsedData.forEach(function(ship) {
                     if (ship.вид_подхода) {
                         const approachType = String(ship.вид_подхода).trim();
@@ -921,17 +1036,17 @@
                         }
                     }
                 });
-                
-                if (locationTypeLabel) {
-                    if (hasFactual) {
-                        locationTypeLabel.textContent = 'Факт';
-                        locationTypeLabel.classList.add('visible');
-                    } else if (hasPlanned) {
-                        locationTypeLabel.textContent = 'План';
-                        locationTypeLabel.classList.add('visible');
-                    } else {
-                        locationTypeLabel.classList.remove('visible');
-                    }
+            }
+            
+            if (locationTypeLabel) {
+                if (hasFactual) {
+                    locationTypeLabel.textContent = 'Факт';
+                    locationTypeLabel.classList.add('visible');
+                } else if (hasPlanned) {
+                    locationTypeLabel.textContent = 'План';
+                    locationTypeLabel.classList.add('visible');
+                } else {
+                    locationTypeLabel.classList.remove('visible');
                 }
             }
             
