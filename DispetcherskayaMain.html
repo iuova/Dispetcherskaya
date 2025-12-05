@@ -110,13 +110,14 @@
             justify-content: center;
             pointer-events: none;
             z-index: 11;
+            gap: 2px; /* минимальный отступ между строками */
         }
 
         .ships-row {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px; /* расстояние между иконками по горизонтали */
+            gap: 2px; /* плотное размещение иконок */
             pointer-events: none;
         }
         
@@ -126,6 +127,7 @@
             align-items: center;
             gap: 0px;
             pointer-events: auto;
+            margin: 0;
         }
         
         .ship-icon {
@@ -165,38 +167,43 @@
         /* Метка прогресс-бара причала:
            теперь это обычный элемент ниже ship-иконок, а не прижатый к нижнему краю области */
         .dock-progress-label {
-            width: 120px; /* длина прогресс-бара по ТЗ */
-            margin-top: 5px; /* ровно 5px ниже ship-иконок */
+            width: 100px;
+            margin-top: 1px;
             display: flex;
             flex-direction: column;
             align-items: center;
             pointer-events: none;
+            gap: 2px;
         }
 
+        .dock-progress-text {
+            margin-top: 0;
+            font-size: 9px;
+            color: #212121;
+            white-space: nowrap;
+            margin-bottom: 0px;
+        }
+		
         .dock-progress-bar {
             width: 100%;
             height: 6px;
             border-radius: 3px;
-            background-color: #bdbdbd;
+            background: linear-gradient(90deg, #66bb6a 0%, #ef5350 100%);
             overflow: hidden;
             display: flex;
+            padding: 0;  /* убрать возможные внутренние отступы */
+            margin: 0;   /* убрать возможные внешние отступы */
         }
 
         .dock-progress-occupied {
             height: 100%;
-            background-color: #ef5350; /* занято */
+            /* прозрачность для overlay с градиентом */
+            background: transparent;
         }
 
         .dock-progress-free {
             height: 100%;
-            background-color: #66bb6a; /* свободно */
-        }
-
-        .dock-progress-text {
-            margin-top: 2px;
-            font-size: 9px;
-            color: #212121;
-            white-space: nowrap;
+            background: transparent;
         }
         
         .popup {
@@ -285,6 +292,110 @@
         .popup-close:hover {
             color: #424242;
         }
+        .area-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(240, 240, 240, 0.88);
+            padding: 5px 7px 6px 7px;
+            gap: 2px;
+            pointer-events: none;
+            font-family: inherit;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 11;
+            min-width: 100px;
+            user-select: none;
+            border-radius: 11px;
+            box-shadow: 0 2px 10px 0 rgba(90,100,120,0.30);
+        }
+        .area-label .area-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffffff;
+            background: #9098a2;
+            padding: 0 7px;
+            border-radius: 6px;
+            margin-bottom: 2px;
+            pointer-events: none;
+            white-space: nowrap;
+            overflow: visible;
+            text-overflow: initial;
+            min-width: 85px;
+            display: inline-block;
+        }
+        .area-label .ships-row {
+            display: flex;
+            gap: 2px;
+            align-items: flex-end;
+            justify-content: center;
+            pointer-events: none;
+        }
+        .area-label .ship-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 2px;
+            pointer-events: none;
+        }
+        .area-label .ship-name {
+            font-size: 11px;
+            color: #212121;
+            background: rgba(240,240,240,0.88);
+            border-radius: 2px;
+            padding: 0 3px;
+            margin-bottom: 1px;
+            max-width: 74px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            pointer-events: none;
+            text-align: center;
+            font-weight: 600;
+        }
+        .area-label .ship-icon {
+            width: 27px;
+            height: 27px;
+            object-fit: contain;
+            filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(100%) contrast(100%);
+            cursor: pointer;
+            pointer-events: auto;
+            margin-bottom: 0;
+        }
+        .area-label .ship-icon.lighter { opacity: 0.6; }
+        .area-label .dock-progress-bar {
+            width: 92px;
+            height: 5px;
+            border-radius: 3px;
+            background: #66bb6a;
+            overflow: hidden;
+            display: flex;
+            margin: 2px 0 0 0;
+            position: relative;
+        }
+        .area-label .dock-progress-bar .bar-fill {
+            height: 100%;
+            background: #66bb6a;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        .area-label .dock-progress-bar .bar-empty {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            background: #ffe082;
+        }
+        .area-label .dock-progress-text {
+            font-size: 9px;
+            color: #212121;
+            margin: 0;
+            white-space: nowrap;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -307,8 +418,8 @@
     </div>
     
     <script>
-        let parsedData = null;          // данные по судам
-        let parsedDocksData = null;     // данные по причалам (dataAllDocks)
+        let parsedData = null;
+        let parsedDocksData = null;
         let interactiveAreas = [];
         let mapImage = null;
         let interactiveAreasContainer = null;
@@ -683,136 +794,111 @@
             const busy = parseNumeric(dockInfo.занято);
             const free = parseNumeric(dockInfo.свободно);
 
-            const effectiveTotal = total > 0 ? total : (busy + free);
-            let occupiedPercent = 0;
+            if (!busy) return null;
+            const effTotal = total > 0 ? total : (busy + free);
+            let occupiedPercent = effTotal > 0 ? (busy / effTotal) * 100 : 0;
+            occupiedPercent = Math.max(0, Math.min(occupiedPercent, 100));
 
-            if (effectiveTotal > 0) {
-                occupiedPercent = (busy / effectiveTotal) * 100;
+            const barWrap = document.createElement('div');
+            barWrap.className = 'dock-progress-bar';
+            barWrap.style.position = 'relative';
+
+            const barFill = document.createElement('div');
+            barFill.className = 'bar-fill';
+            barFill.style.width = occupiedPercent + '%';
+            barWrap.appendChild(barFill);
+
+            // Если не полностью заполнен — добавить желтую незаполненную часть
+            if (occupiedPercent < 100) {
+                const barEmpty = document.createElement('div');
+                barEmpty.className = 'bar-empty';
+                barEmpty.style.width = (100 - occupiedPercent) + '%';
+                barEmpty.style.left = occupiedPercent + '%';
+                barWrap.appendChild(barEmpty);
             }
-
-            if (occupiedPercent < 0) occupiedPercent = 0;
-            if (occupiedPercent > 100) occupiedPercent = 100;
-
-            const dockLabel = document.createElement('div');
-            dockLabel.className = 'dock-progress-label';
-
-            const bar = document.createElement('div');
-            bar.className = 'dock-progress-bar';
-
-            const occupiedDiv = document.createElement('div');
-            occupiedDiv.className = 'dock-progress-occupied';
-            occupiedDiv.style.width = occupiedPercent + '%';
-
-            const freeDiv = document.createElement('div');
-            freeDiv.className = 'dock-progress-free';
-            freeDiv.style.width = (100 - occupiedPercent) + '%';
-
-            bar.appendChild(occupiedDiv);
-            bar.appendChild(freeDiv);
 
             const textDiv = document.createElement('div');
             textDiv.className = 'dock-progress-text';
             textDiv.textContent = `${formatMeters(busy)} / ${formatMeters(free)} м`;
-
-            dockLabel.appendChild(bar);
-            dockLabel.appendChild(textDiv);
-
-            return dockLabel;
+            return {barWrap, textDiv};
         }
 
         function createInteractiveArea(areaConfig, scaleX, scaleY) {
+            // Создание DOM-области
             const area = document.createElement('div');
             area.className = 'interactive-area';
             const x = Number(areaConfig.x);
             const y = Number(areaConfig.y);
             const width = Number(areaConfig.width);
             const height = Number(areaConfig.height);
-    
             area.style.left = (x * scaleX) + 'px';
             area.style.top = (y * scaleY) + 'px';
             area.style.width = (width * scaleX) + 'px';
             area.style.height = (height * scaleY) + 'px';
 
-            const iconsContainer = document.createElement('div');
-            iconsContainer.className = 'ship-icons-container';
-
-            let hasShips = false;
-            let hasDockProgress = false;
-
-            // Иконки судов
+            // 1. Собираем данные о кораблях
+            let filteredData = [];
             if (parsedData && Array.isArray(parsedData)) {
-                const filteredData = filterDataByObject(
+                filteredData = filterDataByObject(
                     parsedData, 
                     areaConfig.matchField || 'причал', 
                     areaConfig.matchValue || areaConfig.name
                 );
-                
-                if (filteredData.length > 0) {
-                    hasShips = true;
-
-                    const shipsRow = document.createElement('div');
-                    shipsRow.className = 'ships-row';
-                    
-                    const defaultSideIcon = 'side_ship.png';
-                    const defaultSternIcon = 'stern_ship.png';
-
-                    const sideIconSrc = getIconSrcFromBase64(
-                        typeof iconSideImagePNG !== 'undefined' ? iconSideImagePNG : '',
-                        defaultSideIcon
-                    );
-                    const sternIconSrc = getIconSrcFromBase64(
-                        typeof iconSternImagePNG !== 'undefined' ? iconSternImagePNG : '',
-                        defaultSternIcon
-                    );
-                    
-                    for (let i = 0; i < filteredData.length; i++) {
-                        const shipData = filteredData[i];
-                        
-                        const hasSecondSide = shipData.швартовка_вторым_бортом && 
-                                            (String(shipData.швартовка_вторым_бортом).toLowerCase() === 'да' || 
-                                             shipData.швартовка_вторым_бортом === true);
-                        const hasStern = shipData.швартовка_кормой && 
-                                        (String(shipData.швартовка_кормой).toLowerCase() === 'да' || 
-                                         shipData.швартовка_кормой === true);
-                        const needsOffset = hasSecondSide || hasStern;
-                        
-                        const currentIconSrc = hasStern ? sternIconSrc : sideIconSrc;
-                        
-                        const shipIconWrapper = document.createElement('div');
-                        shipIconWrapper.className = 'ship-icon-wrapper';
-                        
-                        const shipLabel = document.createElement('div');
-                        shipLabel.className = 'ship-label' + (needsOffset ? ' diagonal' : '');
-                        shipLabel.textContent = shipData.судно || 'Судно';
-                        
-                        const shipIcon = document.createElement('img');
-                        shipIcon.className = 'ship-icon' + (hasSecondSide ? ' lighter' : '');
-                        shipIcon.src = currentIconSrc;
-                        shipIcon.alt = 'Судно';
-                        
-                        shipIconWrapper.addEventListener('mouseenter', function(e) {
-                            showPopup(e, shipData, areaConfig);
-                        });
-                        
-                        shipIconWrapper.addEventListener('mousemove', function(e) {
-                            updatePopupPosition(e);
-                        });
-                        
-                        shipIconWrapper.addEventListener('mouseleave', function() {
-                            closePopup();
-                        });
-                        
-                        shipIconWrapper.appendChild(shipLabel);
-                        shipIconWrapper.appendChild(shipIcon);
-                        
-                        shipsRow.appendChild(shipIconWrapper);
-                    }
-                    
-                    iconsContainer.appendChild(shipsRow);
-                }
             }
+            if (!filteredData.length) return area; // Нет кораблей — не выводить label
 
-            // Прогресс-бар по причалу (ниже ship-иконок)
+            // 2. Создаём основной label
+            const areaLabel = document.createElement('div');
+            areaLabel.className = 'area-label';
+            // Заголовок с названием причала
+            const title = document.createElement('div');
+            title.className = 'area-title';
+            title.textContent = areaConfig.name || areaConfig.matchValue || '';
+            areaLabel.appendChild(title);
+
+            // 3. Формируем строку иконок
+            const shipsRow = document.createElement('div');
+            shipsRow.className = 'ships-row';
+            const defaultSideIcon = 'side_ship.png';
+            const defaultSternIcon = 'stern_ship.png';
+            const sideIconSrc = getIconSrcFromBase64(
+                typeof iconSideImagePNG !== 'undefined' ? iconSideImagePNG : '',
+                defaultSideIcon
+            );
+            const sternIconSrc = getIconSrcFromBase64(
+                typeof iconSternImagePNG !== 'undefined' ? iconSternImagePNG : '',
+                defaultSternIcon
+            );
+            filteredData.forEach(shipData => {
+                const hasSecondSide = shipData.швартовка_вторым_бортом &&
+                        (String(shipData.швартовка_вторым_бортом).toLowerCase() === 'да' || shipData.швартовка_вторым_бортом === true);
+                const hasStern = shipData.швартовка_кормой &&
+                        (String(shipData.швартовка_кормой).toLowerCase() === 'да' || shipData.швартовка_кормой === true);
+                const currentIconSrc = hasStern ? sternIconSrc : sideIconSrc;
+
+                const shipGroup = document.createElement('div');
+                shipGroup.className = 'ship-group';
+                // Название ship
+                const shipName = document.createElement('div');
+                shipName.className = 'ship-name';
+                shipName.textContent = shipData.судно || 'Судно';
+                shipGroup.appendChild(shipName);
+                // Иконка
+                const shipIcon = document.createElement('img');
+                shipIcon.className = 'ship-icon' + (hasSecondSide ? ' lighter' : '');
+                shipIcon.src = currentIconSrc;
+                shipIcon.alt = 'Судно';
+                // Popup только на иконке
+                shipIcon.addEventListener('mouseenter', (e) => { showPopup(e, shipData, areaConfig); });
+                shipIcon.addEventListener('mousemove', (e) => { updatePopupPosition(e); });
+                shipIcon.addEventListener('mouseleave', () => { closePopup(); });
+                shipGroup.appendChild(shipIcon);
+                shipsRow.appendChild(shipGroup);
+            });
+            areaLabel.appendChild(shipsRow);
+
+            // 4. Прогрессбар
+            let dockProgressBar = null, dockProgressText = null;
             if (parsedDocksData && Array.isArray(parsedDocksData) && parsedDocksData.length > 0) {
                 const dockMatches = filterDataByObject(
                     parsedDocksData,
@@ -820,17 +906,19 @@
                     areaConfig.matchValue || areaConfig.name
                 );
                 if (dockMatches.length > 0) {
-                    hasDockProgress = true;
-                    const dockInfo = dockMatches[0];
-                    const dockProgressElement = createDockProgressElement(dockInfo);
-                    iconsContainer.appendChild(dockProgressElement);
+                    const progress = createDockProgressElement(dockMatches[0]);
+                    if (progress) {
+                        dockProgressBar = progress.barWrap;
+                        dockProgressText = progress.textDiv;
+                    }
                 }
             }
-
-            if (hasShips || hasDockProgress) {
-                area.appendChild(iconsContainer);
+            if (dockProgressBar && dockProgressText) {
+                areaLabel.appendChild(dockProgressText);
+                areaLabel.appendChild(dockProgressBar);
             }
-            
+            //
+            area.appendChild(areaLabel);
             return area;
         }
     
@@ -982,7 +1070,7 @@
 
         const iconSideImagePNG = "iconSidePNG";
         const iconSternImagePNG = "iconSternPNG";
-    
+            
         function onDOMContentLoaded() {
             mapImage = document.getElementById('map-image');
             interactiveAreasContainer = document.getElementById('interactive-areas');
